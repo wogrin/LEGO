@@ -241,6 +241,8 @@ parameters
    pH2MaxCons   (         h2u  ) "Technical maximum consumption of hydrogen unit [   GW  ]"
    pH2MaxInvest (         h2u  ) "Maximum investment of hydrogen units           [0-N    ]"
    pH2ExisUnits (         h2u  ) "number of existing    hydrogen units           [0-N    ]"
+   pH2_pf       (         h2u  ) "power factor          of hydrogen unit         [p.u.   ]"  
+   pH2RatioQP   (         h2u  ) "tan(arccos(pf)) = Q/P of hydrogen unit         [p.u.   ]"  
    pH2Fmax      (     h2i,h2i  ) "maximum hydrogen flow                          [t      ]"
    pH2NSCost                     "cost of hydrogen not served                    [M$ /t  ]"
 
@@ -277,10 +279,10 @@ parameters
    pEconomicResults (*,         g  ) "Economic Results                  [M$]   "
    pTotalBESSProfits                 "Total battery tecn profits        [M$]   "
    pResultDSM       (i,*,*,rp,k    ) "Results DSM                       [GW]   "
-   pActualSysInertia(      k ,rp   ) "actual system inertia             [s]    "             
+   pActualSysInertia(      k ,rp   ) "actual system inertia             [s]    "
    pRoCoF_k         (      rp,k,g  ) "Scaled power gain factor of gen g [p.u.] "
-   pRoCoF_SG_M      (      rp,k    ) "Scaled power gain factor of SG    [p.u.] "                                          
-   pRoCoF_VI_M      (      rp,k    ) "Scaled power gain factor of VI    [p.u.] "                                          
+   pRoCoF_SG_M      (      rp,k    ) "Scaled power gain factor of SG    [p.u.] "
+   pRoCoF_VI_M      (      rp,k    ) "Scaled power gain factor of VI    [p.u.] "
    pH2price         (h2sec,k,h2i,rp) "Hydrogen price                    [$/kg] "
    pH2Invest        (h2u,*         ) "Hydrogen units investment         [  MW] "
    pH2ns            (h2sec,k,h2i,rp) "Hydrogen non served               [  kg] "
@@ -307,7 +309,7 @@ binary    variables
 ;
 integer   variables
    vGenInvest    (     g)  "Integer generation investment [0-N]"
-   vH2Invest     (   h2u)  "Integer H2 investment         [0-N]"   
+   vH2Invest     (   h2u)  "Integer H2 investment         [0-N]"
 ;
 positive variables
    vConsump        (rp,k,g        ) "consumption of the unit                     [GW  ]"
@@ -340,7 +342,7 @@ positive variables
    vRoCoF_AuxV     (rp,k,g  ,m    ) "variable representing the product of binary vb and continuous vM-VI"
    vRoCoF_SysM_AuxZ(rp,k,g        ) "variable representing the product of binary vu and continuous vM   "
    vRoCoF_SysM_AuxV(rp,k,g,  m    ) "variable representing the product of binary vb and continuous vM   "
-   vH2ns           (rp,k,h2i,h2sec) "Hydrogen non-served                         [t ]" 
+   vH2ns           (rp,k,h2i,h2sec) "Hydrogen non-served                         [t ]"
    vH2Prod         (rp,k,h2u      ) "Hydrogen generation of the unit             [t ]"
    vH2Consump      (rp,k,h2u      ) "Power consumption of hydrogen the unit      [GW]"
 ;
@@ -527,10 +529,10 @@ eSN_BalanceP(rpk(rp,k),iact(i))$[not pTransNet]..
    +                  vPNS      (rp,k,i)
    + sum[     seg   , vDSM_Shed (rp,k,i,seg)] $[pDSM     ]
    + sum[     sec   , vDSM_Dn   (rp,k,i,sec)] $[pDSM     ]
-  =e=               
+  =e=
    + sum[      j    , pDemandP  (rp,k,j)]
    + sum[     sec   , vDSM_Up   (rp,k,i,sec)] $[pDSM     ]
-   + sum[h2gi(h2g,i), vH2Consump(rp,k,h2g  )] $[pEnableH2]   
+   + sum[h2gi(h2g,i), vH2Consump(rp,k,h2g  )] $[pEnableH2]
 ;
 
 e2ReserveUp(rpk(rp,k))$[p2ndResUp].. sum[t, v2ndResUP(rp,k,t)] + sum[s, v2ndResUP(rp,k,s)] =g= p2ndResUp * sum[i, pDemandP(rp,k,i)] ;
@@ -660,7 +662,7 @@ eCleanProd..
    + sum[rpk(rp,k),pWeight_rp(rp)*pWeight_k(k)*sum[gi(t,j), vGenP   (rp,k,t)]]
   =l=
    + [1-pMinGreenProd]
-   * sum[rpk(rp,k),pWeight_rp(rp)*pWeight_k(k)*sum[     j , pDemandP(rp,k,j)]] 
+   * sum[rpk(rp,k),pWeight_rp(rp)*pWeight_k(k)*sum[     j , pDemandP(rp,k,j)]]
 ;
 eFirmCapCon..
    + sum[g$ga(g), pFirmCapCoef(g)*pMaxProd(g)*[vGenInvest(g)+pExisUnits(g)]]
@@ -782,19 +784,20 @@ eSOCP_BalanceP(rpk(rp,k),i) $[pTransNet and pEnableSOCP] ..
 ;
 
 eSOCP_BalanceQ(rpk(rp,k),i) $[pTransNet and pEnableSOCP] ..
-   + sum[gi(t    ,i), vGenQ (rp,k,t    )]
-   + sum[gi(r    ,i), vGenQ (rp,k,r    )]
-   + sum[gi(s    ,i), vGenQ (rp,k,s    )]
-   + sum[gi(facts,i), vGenQ (rp,k,facts)]
-   +                  vPNS  (rp,k,i    )    * pRatioDemQP(i)
-   + sum[       seg, vDSM_Shed(rp,k,i,seg)] * pRatioDemQP(i) $[pDSM]
-   + sum[       sec, vDSM_Dn  (rp,k,i,sec)] * pRatioDemQP(i) $[pDSM]
+   + sum[gi(t    ,i), vGenQ    (rp,k,t    )]
+   + sum[gi(r    ,i), vGenQ    (rp,k,r    )]
+   + sum[gi(s    ,i), vGenQ    (rp,k,s    )]
+   + sum[gi(facts,i), vGenQ    (rp,k,facts)]
+   +                  vPNS     (rp,k,i    )  * pRatioDemQP(i)
+   + sum[       seg,  vDSM_Shed(rp,k,i,seg)] * pRatioDemQP(i) $[pDSM]
+   + sum[       sec,  vDSM_Dn  (rp,k,i,sec)] * pRatioDemQP(i) $[pDSM]
   =e=
    + sum[(j,c) $la(i,j,c), vLineQ(rp,k,i,j,c)]
    + sum[(j,c) $la(j,i,c), vLineQ(rp,k,i,j,c)]
    - vSOCP_cii (rp,k,i) * pBusB(i) * pSBase
    + pDemandQ  (rp,k,i)
-   + sum[       sec, vDSM_Up  (rp,k,i,sec)] * pRatioDemQP(i) $[pDSM]
+   + sum[       sec , vDSM_Up   (rp,k,i,sec)] * pRatioDemQP(i  )  $[pDSM]
+   + sum[h2gi(h2g,i), vH2Consump(rp,k,h2g  )  * pH2RatioQP (h2g)] $[pEnableH2]
 ;
 
 eSOCP_QMaxOut (rpk(rp,k),t) $[pTransNet and pEnableSOCP and pMaxGenQ(t)  ].. vGenQ(rp,k,t) / pMaxGenQ(t) =l= vCommit(rp,k,t) ;
@@ -1230,12 +1233,12 @@ t    (g) $[ tThermalGen(g,'MaxProd'     )  and
             tThermalGen(g,'FuelCost'    )]     = yes ;
 
 s    (g) $[ tStorage   (g,'MaxProd'     )  and
-           [tStorage   (g,'ExisUnits'   )  or 
+           [tStorage   (g,'ExisUnits'   )  or
             tStorage   (g,'EnableInvest')  *
             tStorage   (g,'MaxInvest'   )]]   = yes ;
 
 r    (g) $[ tRenewable (g,'MaxProd'     )  and
-           [tRenewable (g,'ExisUnits'   )  or 
+           [tRenewable (g,'ExisUnits'   )  or
             tRenewable (g,'EnableInvest')  *
             tRenewable (g,'MaxInvest'   )]]   = yes ;
 
@@ -1389,7 +1392,7 @@ pInvestCost(facts) = tFACTS  (facts,'InvestCost'  ) * 1e-3 *
 * active, reactive and peak demand
 pDemandP(rpk(rp,k),i) = tDemand(k,rp,i)                  * 1e-3 ;
 pDemandQ(rpk(rp,k),i) = tDemand(k,rp,i) * pRatioDemQP(i) * 1e-3 ;
-pPeakDemand           = smax((rp,k,i)$rpk(rp,k),pDemandP(rp,k,i));
+pPeakDemand           = smax((rp,k)$rpk(rp,k),sum(i,pDemandP(rp,k,i)));
 
 * demand-side management
 pMaxUpDSM(rpk(rp,k),i,sec) = tDSMprofile(k,rp,sec,'Up')   * tDemand(k,rp,i) * 1e-3 ;
@@ -1424,15 +1427,17 @@ pH2NSCost = pH2NSCost * 1e-3 ;
 
 pH2Demand(rpk(rp,k),h2i,h2sec) = tH2Demand(h2sec,k,rp,h2i) * 1e-3 ;
 
-pH2ExisUnits (h2g   ) = tH2GenUnits(h2g,'ExisUnits'   )        ;
-pH2MaxInvest (h2g   ) = tH2GenUnits(h2g,'MaxInvest'   )        ;
-pH2PE        (h2g   ) = tH2GenUnits(h2g,'H2Effic'     )        ;
-pH2MaxCons   (h2g   ) = tH2GenUnits(h2g,'MaxCons'     ) * 1e-3 ;
-pH2OMVarCost (h2g   ) = tH2GenUnits(h2g,'OMVarCost'   ) * 1e-3 ;
-pH2InvestCost(h2g   ) = tH2GenUnits(h2g,'InvestCost'  ) * 1e-3 *
-                        tH2GenUnits(h2g,'MaxCons'     ) * 1e-3 ;
+pH2ExisUnits (h2g   ) = tH2GenUnits(h2g   ,'ExisUnits'   )        ;
+pH2MaxInvest (h2g   ) = tH2GenUnits(h2g   ,'MaxInvest'   )        ;
+pH2PE        (h2g   ) = tH2GenUnits(h2g   ,'H2Effic'     )        ;
+pH2_pf       (h2g   ) = tH2GenUnits(h2g   ,'PowerFactor' )        ;
+pH2MaxCons   (h2g   ) = tH2GenUnits(h2g   ,'MaxCons'     ) * 1e-3 ;
+pH2OMVarCost (h2g   ) = tH2GenUnits(h2g   ,'OMVarCost'   ) * 1e-3 ;
+pH2InvestCost(h2g   ) = tH2GenUnits(h2g   ,'InvestCost'  ) * 1e-3 *
+                        tH2GenUnits(h2g   ,'MaxCons'     ) * 1e-3 ;
+pH2Fmax      (h2line) = tH2Network (h2line,'Fmax'        ) * 1e-3 ;
 
-pH2Fmax      (h2line) = tH2Network(h2line,'Fmax'      ) * 1e-3 ;
+pH2RatioQP   (h2g   ) = tan(arccos(pH2_pf(h2g))  ) ;
 
 * update parameter to calculate regret
 pRegretCalc $[%RegretCalc%=0 or  card(p)>card(k)] = 0 ;
@@ -1631,12 +1636,12 @@ pSummary('Renewable          Investment [GW]') = sum[r        , vGenInvest.l (r 
 pSummary('Storage            Investment [GW]') = sum[s        , vGenInvest.l (s    ) * pMaxProd(s    )];
 pSummary('Transmission lines Investment [GW]') = sum[lc(i,j,c), vLineInvest.l(i,j,c) * pPmax   (i,j,c)];
 
-pSummary('Payment renewable quota [$/MWh]') = - eCleanProd.m  * 1e3 + eps;
+pSummary('Cost renewable quota    [$/MWh]') = - eCleanProd.m  * 1e3 + eps;
 pSummary('Payment firm capacity   [$/MW ]') =   eFirmCapCon.m * 1e3 + eps;
 
-pSummary('levelized cost of H2    [$/kg ]') $[pEnableH2 and sum[(rpk(rp,k),h2u      ), pWeight_rp(rp)*pWeight_k(k)                      * vH2Prod.l  (rp,k,h2u)]] =
+pSummary('Levelized cost of H2    [$/kg ]') $[pEnableH2 and sum[(rpk(rp,k),h2u      ), pWeight_rp(rp)*pWeight_k(k)                      * vH2Prod.l  (rp,k,h2u)]] =
                                                          [+ sum[           h2u       ,                             pH2InvestCost(h2u)   * vH2Invest.l(     h2u)]
-                                                          + sum[(rpk(rp,k),h2u      ), pWeight_rp(rp)*pWeight_k(k)*pH2OMVarCost (h2u)   * vH2Prod.l  (rp,k,h2u)]] * 1e3 
+                                                          + sum[(rpk(rp,k),h2u      ), pWeight_rp(rp)*pWeight_k(k)*pH2OMVarCost (h2u)   * vH2Prod.l  (rp,k,h2u)]] * 1e3
                                                           / sum[(rpk(rp,k),h2u      ), pWeight_rp(rp)*pWeight_k(k)                      * vH2Prod.l  (rp,k,h2u)]
                                                           + eps ;
 
@@ -1757,7 +1762,7 @@ pReserveCost(t)   = + sum[(rpk(rp,k)), pWeight_rp(rp)*pWeight_k(k)*pSlopeVarCost
                     + sum[(rpk(rp,k)), pWeight_rp(rp)*pWeight_k(k)*pSlopeVarCost(t)  *
                                                     p2ndResDwCost     * v2ndResDW.l(rp,k,t)] ;
 
-pRevRESQuota(r)   =    eCleanProd.m  * sum[(rpk(rp,k)), pWeight_rp(rp)*pWeight_k(k) * vGenP.l    (rp,k,r)] ;
+pRevRESQuota(t)   =    eCleanProd.m  * sum[(rpk(rp,k)), pWeight_rp(rp)*pWeight_k(k) * vGenP.l    (rp,k,t)] ;
 pFirmCapPay (g)   =    eFirmCapCon.m * pFirmCapCoef(g)*pMaxProd(g)*[vGenInvest.l(g)+pExisUnits(g)];
 
 pInvCost(g)$ga(g) = pInvestCost(g)* vGenInvest.l(g);
@@ -1778,15 +1783,15 @@ pTotalProfits (g) =   pRevSpot    (g)
                     - pOMCost     (g)
 ;
 
-pEconomicResults('Spot market revenues    [M$]',g) =  pRevSpot     (g) + eps;
-pEconomicResults('Spot market costs       [M$]',g) =  pCostSpot    (g) + eps;
-pEconomicResults('Reserve market revenues [M$]',g) =  pRevReserve  (g) + eps;
-pEconomicResults('Reserve market costs    [M$]',g) =  pReserveCost (g) + eps;
-pEconomicResults('O&M costs               [M$]',g) =  pOMCost      (g) + eps;
-pEconomicResults('Investment costs        [M$]',g) =  pInvCost     (g) + eps;
-pEconomicResults('Total profits           [M$]',g) =  pTotalProfits(g) + eps;
-pEconomicResults('RES quota payments      [M$]',g) =  pRevRESQuota (g) + eps;
-pEconomicResults('Firm capacity payments  [M$]',g) =  pFirmCapPay  (g) + eps;
+pEconomicResults('Spot market revenues    [M$]',g) =    pRevSpot     (g) + eps;
+pEconomicResults('Spot market costs       [M$]',g) =  - pCostSpot    (g) + eps;
+pEconomicResults('Reserve market revenues [M$]',g) =    pRevReserve  (g) + eps;
+pEconomicResults('Reserve market costs    [M$]',g) =  - pReserveCost (g) + eps;
+pEconomicResults('O&M costs               [M$]',g) =  - pOMCost      (g) + eps;
+pEconomicResults('Investment costs        [M$]',g) =  - pInvCost     (g) + eps;
+pEconomicResults('RES quota payments/cost [M$]',g) =    pRevRESQuota (g) + eps;
+pEconomicResults('Firm capacity payments  [M$]',g) =    pFirmCapPay  (g) + eps;
+pEconomicResults('Total profits           [M$]',g) =    pTotalProfits(g) + eps;
 
 * -------------------------------------- RoCoF results ---------------------------------------
 
