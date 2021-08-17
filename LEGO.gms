@@ -236,13 +236,14 @@ parameters
 * hydrogen parameters
    pH2Demand    (rp,k,h2i,h2sec) "Hydrogen demand per sector                     [t      ]"
    pH2PE        (         h2u  ) "Hydrogen per unit of energy - unit efficiency  [t /GWh ]"
-   pH2OMVarCost (         h2u  ) "O&M variable cost of  hydrogen unit            [M$/t   ]"
+   pH2OMPercent (         h2u  ) "O&M variable cost percentage of CAPEX          [p.u.   ]"
+   pH2OMVarCost (         h2u  ) "O&M variable cost of  hydrogen unit            [M$/GW/y]"
    pH2InvestCost(         h2u  ) "Investment   cost for hydrogen unit            [M$/GW/y]"
    pH2MaxCons   (         h2u  ) "Technical maximum consumption of hydrogen unit [   GW  ]"
    pH2MaxInvest (         h2u  ) "Maximum investment of hydrogen units           [0-N    ]"
    pH2ExisUnits (         h2u  ) "number of existing    hydrogen units           [0-N    ]"
-   pH2_pf       (         h2u  ) "power factor          of hydrogen unit         [p.u.   ]"  
-   pH2RatioQP   (         h2u  ) "tan(arccos(pf)) = Q/P of hydrogen unit         [p.u.   ]"  
+   pH2_pf       (         h2u  ) "power factor          of hydrogen unit         [p.u.   ]"
+   pH2RatioQP   (         h2u  ) "tan(arccos(pf)) = Q/P of hydrogen unit         [p.u.   ]"
    pH2Fmax      (     h2i,h2i  ) "maximum hydrogen flow                          [t      ]"
    pH2NSCost                     "cost of hydrogen not served                    [M$ /t  ]"
 
@@ -257,6 +258,7 @@ parameters
    pStLevel         (p,g           ) "storage level during the year     [p.u]  "
    pStLvMW          (p,g           ) "storage level moving window       [GWh]  "
    pSRMC            (p,i           ) "short run marginal cost           [$/MWh]"
+   pMC              (      rp,k,i  ) "marginal cost                     [M$/GW]"
    pGenInvest       (*,*           ) "total generation investment       [MW]   "
    pTraInvest       (i,i,c,*       ) "total transmission investment     [MW]   "
    pLineP           (k,i,i,c,rp    ) "  active power flow               [MW]   "
@@ -497,7 +499,7 @@ eTotalVCost..
    + sum[(rpk(rp,k),s        ), pWeight_rp(rp)*pWeight_k(k)*pOMVarCost   (s)     * vGenP    (rp,k,s)    ]
    + sum[(rpk(rp,k),r        ), pWeight_rp(rp)*pWeight_k(k)*pOMVarCost   (r)     * vGenP    (rp,k,r)    ]
 * hydrogen operational costs
-   + sum[(rpk(rp,k),h2u      ), pWeight_rp(rp)*pWeight_k(k)*pH2OMVarCost (h2u)   * vH2Prod  (rp,k,h2u      )] $[pEnableH2]
+   + sum[           h2u       ,                             pH2OMVarCost (h2u)   * vH2Invest(     h2u      )] $[pEnableH2]
    + sum[(rpk(rp,k),h2i,h2sec), pWeight_rp(rp)*pWeight_k(k)*pH2NSCost            * vH2ns    (rp,k,h2i,h2sec)] $[pEnableH2]
 * cycle aging costs
    + sum[(rpk(rp,k),s,a)$[cdsf(s)],
@@ -1432,9 +1434,12 @@ pH2MaxInvest (h2g   ) = tH2GenUnits(h2g   ,'MaxInvest'   )        ;
 pH2PE        (h2g   ) = tH2GenUnits(h2g   ,'H2Effic'     )        ;
 pH2_pf       (h2g   ) = tH2GenUnits(h2g   ,'PowerFactor' )        ;
 pH2MaxCons   (h2g   ) = tH2GenUnits(h2g   ,'MaxCons'     ) * 1e-3 ;
-pH2OMVarCost (h2g   ) = tH2GenUnits(h2g   ,'OMVarCost'   ) * 1e-3 ;
+pH2OMPercent (h2g   ) = tH2GenUnits(h2g   ,'OMVarCost'   )        ;
 pH2InvestCost(h2g   ) = tH2GenUnits(h2g   ,'InvestCost'  ) * 1e-3 *
                         tH2GenUnits(h2g   ,'MaxCons'     ) * 1e-3 ;
+
+pH2OMVarCost (h2g   ) = pH2InvestCost(h2g) * pH2OMPercent (h2g)   ;
+
 pH2Fmax      (h2line) = tH2Network (h2line,'Fmax'        ) * 1e-3 ;
 
 pH2RatioQP   (h2g   ) = tan(arccos(pH2_pf(h2g))  ) ;
@@ -1638,12 +1643,7 @@ pSummary('Transmission lines Investment [GW]') = sum[lc(i,j,c), vLineInvest.l(i,
 
 pSummary('Cost renewable quota    [$/MWh]') = - eCleanProd.m  * 1e3 + eps;
 pSummary('Payment firm capacity   [$/MW ]') =   eFirmCapCon.m * 1e3 + eps;
-
-pSummary('Levelized cost of H2    [$/kg ]') $[pEnableH2 and sum[(rpk(rp,k),h2u      ), pWeight_rp(rp)*pWeight_k(k)                      * vH2Prod.l  (rp,k,h2u)]] =
-                                                         [+ sum[           h2u       ,                             pH2InvestCost(h2u)   * vH2Invest.l(     h2u)]
-                                                          + sum[(rpk(rp,k),h2u      ), pWeight_rp(rp)*pWeight_k(k)*pH2OMVarCost (h2u)   * vH2Prod.l  (rp,k,h2u)]] * 1e3
-                                                          / sum[(rpk(rp,k),h2u      ), pWeight_rp(rp)*pWeight_k(k)                      * vH2Prod.l  (rp,k,h2u)]
-                                                          + eps ;
+*calculated later with H2 results:   pSummary('Levelized cost of H2    [$/kg ]')
 
 * --------------------------------------- Investment Results -----------------------------------
 
@@ -1730,10 +1730,15 @@ pResulCDSF('Battery life expectancy [year]',s)$[not pIsHydro(s) and pShelfLife(s
 
 * -------------------------------- Economic Results Calculation ------------------------------
 
-* electricity prices
+* electricity prices [$/MWh]
 pSRMC(p,i)$[not pTransNet                    ] = sum[hindex(p,rpk(rp,k)), eSN_BalanceP.m  (rp,k,i) * 1e3 / [pWeight_rp(rp)*pWeight_k(k)]] + eps ;
 pSRMC(p,i)$[    pTransNet and not pEnableSOCP] = sum[hindex(p,rpk(rp,k)), eDC_BalanceP.m  (rp,k,i) * 1e3 / [pWeight_rp(rp)*pWeight_k(k)]] + eps ;
 pSRMC(p,i)$[    pTransNet and     pEnableSOCP] = sum[hindex(p,rpk(rp,k)), eSOCP_BalanceP.m(rp,k,i) * 1e3 / [pWeight_rp(rp)*pWeight_k(k)]] + eps ;
+
+* electricity prices in rp and k [M$/GW]
+pMC(rp,k,i)$[not pTransNet                    ] = eSN_BalanceP.m  (rp,k,i) + eps ;
+pMC(rp,k,i)$[    pTransNet and not pEnableSOCP] = eDC_BalanceP.m  (rp,k,i) + eps ;
+pMC(rp,k,i)$[    pTransNet and     pEnableSOCP] = eSOCP_BalanceP.m(rp,k,i) + eps ;
 
 * dual variables of inertia constraints
 pInertDual(k,rp) $[rpk(rp,k) and     pEnableRoCoF] = eRoCoF_SyEq1.m(rp,k) * 1e6 + eps ;
@@ -1834,6 +1839,15 @@ pH2Prod  (h2g  ,k,    rp) $[rpk(rp,k) and pEnableH2] = vH2Prod.l    (rp,k,h2g   
 pH2Cons  (h2g  ,k,    rp) $[rpk(rp,k) and pEnableH2] = vH2Consump.l (rp,k,h2g      ) * 1e3                                 + eps ;
 pH2ns    (h2sec,k,h2i,rp) $[rpk(rp,k) and pEnableH2] = vH2ns.l      (rp,k,h2i,h2sec) * 1e3                                 + eps ;
 pH2Invest(h2g  ,'MW'    ) $[              pEnableH2] = vH2Invest.l  (h2g           ) * 1e3 *  pH2MaxCons(h2g)              + eps ;
+
+pSummary('Levelized cost of H2    [$/kg ]') $[pEnableH2 and sum[(rpk(rp,k),h2u      )  , pWeight_rp(rp)*pWeight_k(k)                           * vH2Prod.l   (rp,k,h2u)]] =
+                                                         [+ sum[           h2u         ,                             pH2InvestCost(h2u)        * vH2Invest.l (     h2u)]
+                                                          + sum[           h2u         ,                             pH2OMVarCost (h2u)        * vH2Invest.l (     h2u)]
+                                                          + sum[(rpk(rp,k),h2gi(h2g,i)),                             pMC          (    rp,k,i) * vH2Consump.l(rp,k,h2g)]] * 1e3
+                                                          / sum[(rpk(rp,k),h2u        ), pWeight_rp(rp)*pWeight_k(k)                           * vH2Prod.l   (rp,k,h2u)]
+                                                          + eps ;
+
+display pSummary;
 
 * -------------------------------- Export results to Excel file ------------------------------
 
