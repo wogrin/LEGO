@@ -1,19 +1,27 @@
 ## Low-carbon Expansion Generation Optimization (LEGO) model
 
-We need to say that we had a preliminary version of Low-carbon Expansion Generation Optimization (LEGO), which has now been extended to account:
-* Freely available and code (and data examples) shared on Github. And there are some novelties.
-* Flexible and modular. 
-* Unique combinations.
-* Plus all the technical constraints (cycle aging costs for batteries), UC, etc.
-* _Novelty_: expansion planning with inertia and AC-OPF and Demand Side Management (transmission expansion planning TEP in DC + AC, DSM, and generation expansion planning).
+LEGO is a mixed integer quadratically constrained optimization problem and has been designed to be a multi-purpose tool, like a Swiss army knife, that can be employed to study many different aspects of the energy sector. Ranging from short-term unit commitment to long-term generation and transmission expansion planning. The underlying modeling philosophies are: modularity and flexibility. LEGO is also composed of thematic modules that can be added or removed from the model easily via data options depending on the scope of the study. You can use this code freely, but please cite our paper [1] if you do.
 
-Temporal flexibility and modularity of the model is something quite unique (that enables a plethora of many different studies) with one single model.
+This version of Low-carbon Expansion Generation Optimization (LEGO) has been extended and includes:
+* Freely available and code (and data examples) shared on Github. And there are some novelties.
+* Flexibility:  1) operation only / TEP / GEP / GEPTEP 
+*               2) rMIP / MIP / MIQCP 
+*               3) chronological hours / representative periods / load blocks
+* Modularity:   1) considering/relaxing unit commitment decisions
+*               2) single-node / DC-OPF / AC-OPF (SOCP)
+*               3) consider battery degradation via cycle aging costs
+*               4) rate of change of frequency system inertia constraints
+*               5) demand-side management (via load shedding and load shifting)
+*               6) hydrogen sector
+* Unique and versatile combinations of modules.
+
+Its unique temporal structure allows LEGO to function with either chronological hourly data, or all kinds of representative periods. LEGO allows for modeling short- and long-term storage technologies with representative periods, e.g., long-term operation of large hydro reservoirs can be represented without having to renounce computational advantages of representative periods. Temporal flexibility and modularity of the model is something quite unique (that enables a plethora of many different studies) with one single model.
 
 # Case Studies
-* **EnStOpInvMo-7LRP-kmeans-net.xlsm**: Case study use in paper [[1]](https://doi.org/10.1016/j.apenergy.2020.115925)
-* **LEGO-Base-Case-Study-7LRP.xlsm**: base case study for debugging the model
-
+* **LEGO-Base-Case-Study-7LRP**: Base case study for the model with stylized power system and 7 representative days
+* **EnStOpInvMo-7LRP-kmeans-net.xlsm**: Case study used in paper [[2]](https://doi.org/10.1016/j.apenergy.2020.115925) [This data file belongs to a preliminary version of the code and is no longer compatible with the current LEGO.gms file]
 
 # References
-[1] [S. Wogrin, D. Tejada-Arango, S. Delikaraoglou, A. Botterud, Assessing the impact of inertia and reactive power constraints in generation expansion planning, Applied Energy,
+[1] [S. Wogrin, D. Tejada-Arango, U. Bachhiesl et al, The full Low-carbon Expansion Generation Optimization (LEGO) model, Submitted to Applied Energy in 2021.]
+[2] [S. Wogrin, D. Tejada-Arango, S. Delikaraoglou, A. Botterud, Assessing the impact of inertia and reactive power constraints in generation expansion planning, Applied Energy,
 Volume 280, 2020, 115925, ISSN 0306-2619.](https://doi.org/10.1016/j.apenergy.2020.115925)
