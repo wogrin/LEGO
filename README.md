@@ -16,5 +16,6 @@ Its unique temporal structure allows LEGO to function with either chronological 
 
 # References
 [1] [S. Wogrin, D. Tejada-Arango, U. Bachhiesl et al, The full Low-carbon Expansion Generation Optimization (LEGO) model, Submitted to Applied Energy in 2021.]
+
 [2] [S. Wogrin, D. Tejada-Arango, S. Delikaraoglou, A. Botterud, Assessing the impact of inertia and reactive power constraints in generation expansion planning, Applied Energy,
 Volume 280, 2020, 115925, ISSN 0306-2619.](https://doi.org/10.1016/j.apenergy.2020.115925)
