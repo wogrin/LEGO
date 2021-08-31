@@ -4,15 +4,8 @@ LEGO is a mixed integer quadratically constrained optimization problem and has b
 
 This version of Low-carbon Expansion Generation Optimization (LEGO) has been extended and includes:
 * Freely available and code (and data examples) shared on Github. And there are some novelties.
-* Flexibility:  1) operation only / TEP / GEP / GEPTEP 
-*               2) rMIP / MIP / MIQCP 
-*               3) chronological hours / representative periods / load blocks
-* Modularity:   1) considering/relaxing unit commitment decisions
-*               2) single-node / DC-OPF / AC-OPF (SOCP)
-*               3) consider battery degradation via cycle aging costs
-*               4) rate of change of frequency system inertia constraints
-*               5) demand-side management (via load shedding and load shifting)
-*               6) hydrogen sector
+* Flexibility:  1) operation only / TEP / GEP / GEPTEP ; 2) rMIP / MIP / MIQCP; 3) chronological hours / representative periods / load blocks
+* Modularity:   1) considering/relaxing unit commitment decisions; 2) single-node / DC-OPF / AC-OPF (SOCP); 3) consider battery degradation via cycle aging costs; 4) rate of change of frequency system inertia constraints; 5) demand-side management (via load shedding and load shifting); 6) hydrogen sector
 * Unique and versatile combinations of modules.
 
 Its unique temporal structure allows LEGO to function with either chronological hourly data, or all kinds of representative periods. LEGO allows for modeling short- and long-term storage technologies with representative periods, e.g., long-term operation of large hydro reservoirs can be represented without having to renounce computational advantages of representative periods. Temporal flexibility and modularity of the model is something quite unique (that enables a plethora of many different studies) with one single model.
