@@ -15,7 +15,7 @@ Its unique temporal structure allows LEGO to function with either chronological 
 * **EnStOpInvMo-7LRP-kmeans-net.xlsm**: Case study used in paper [[2]](https://doi.org/10.1016/j.apenergy.2020.115925) [This data file belongs to a preliminary version of the code and is no longer compatible with the current LEGO.gms file]
 
 # References
-[1] [S. Wogrin, D. Tejada-Arango, U. Bachhiesl et al, The full Low-carbon Expansion Generation Optimization (LEGO) model, Submitted to Applied Energy in 2021.]
+[1] [S. Wogrin, D. Tejada-Arango, U. Bachhiesl, B.F. Hobbs, The full Low-carbon Expansion Generation Optimization (LEGO) model, available at arxiv submit/3906438, and submitted to Applied Energy.]
 
 [2] [S. Wogrin, D. Tejada-Arango, S. Delikaraoglou, A. Botterud, Assessing the impact of inertia and reactive power constraints in generation expansion planning, Applied Energy,
 Volume 280, 2020, 115925, ISSN 0306-2619.](https://doi.org/10.1016/j.apenergy.2020.115925)
