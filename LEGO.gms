@@ -5,7 +5,7 @@ $OnText
 Developed by
 
    Sonja Wogrin
-   Sonja.Wogrin@comillas.edu
+   wogrin@tugraz.at
    Diego Alejandro Tejada Arango
    dtejada@comillas.edu
 
