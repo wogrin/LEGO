@@ -58,13 +58,13 @@ option profile=1, profileTol = 0.01 ;
 
 sets
 * sets to preserve chronology
-   p               "               periods                           "
+   p                "               periods                           "
 
 * sets for representative periods model
-   rp              "                           representative periods"
-   k               "periods      inside a      representative period "
-   hindex(p,rp,k)  "relation among periods and representative periods"
-   rpk   (  rp,k)  "active                     representative periods"
+   rp               "                           representative periods"
+   k                "periods      inside a      representative period "
+   hindex(p,rp,k)   "relation among periods and representative periods"
+   rpk   (  rp,k)   "active                     representative periods"
 
 * sets for thermal units, hydro units, renewables and reservoirs
    g                "generating unit                                  "
@@ -230,6 +230,7 @@ parameters
    pEnableCDSF           "Enable Cycle Depth Stress Function      " /0/
    pEnableRoCoF          "Enable RoCoF constraints and variables  " /0/
    pEnableH2             "Enable Hydrogen constraints             " /0/
+   pEnableCO2            "Enable CO2      constraints             " /0/
    pRoCoFRegret          "Calcluate RoCoF regret                  " /0/
    pDSM                  "Enable demand-side management           " /0/
 
@@ -246,13 +247,21 @@ parameters
    pH2RatioQP   (         h2u  ) "tan(arccos(pf)) = Q/P of hydrogen unit         [p.u.   ]"
    pH2Fmax      (     h2i,h2i  ) "maximum hydrogen flow                          [t      ]"
    pH2NSCost                     "cost of hydrogen not served                    [M$ /t  ]"
+   
+* CO2 parameters
+   pCO2Emis     (g             ) "Specific CO2 emissions per generator           [MtCO2/GWh  ]"
+   pCO2Price                     "CO2-price                                      [M$   /MtCO2]"
+   pCO2Budget                    "Total emission budget                          [MtCO2/y    ]"
+   pCO2Penalty                   "CO2-penalty for CO2 budget violation           [M$   /MtCO2]"
 
 * parameters for ex-post calculations
-   pSummary         (*             ) "Model summary results                   "
+   pSummary         (*             ) "Model summary results                    "
    pCommit          (p,g           ) "commitment of the unit            [0-1]  "
    pGenP            (p,g           ) "  active power of the unit        [MW]   "
    pGenQ            (p,g           ) "reactive power of the unit        [MVar] "
    pChrP            (p,g           ) "charging power of the unit        [MW]   "
+   pCurtP_k         (rp,k,g        ) "curtailment    of the unit per k  [MW]   "
+   pCurtP_rp        (rp,  g        ) "curtailment    of the unit per rp [MW]   "
    pTecProd         (i,*,*         ) "total production per tecnology    [GWh]  "
    pStIntra         (k,g,rp        ) "intra-period storage level        [p.u]  "
    pStLevel         (p,g           ) "storage level during the year     [p.u]  "
@@ -280,7 +289,7 @@ parameters
    pTotalProfits    (           g  ) "Total profits of storage s        [M$]   "
    pEconomicResults (*,         g  ) "Economic Results                  [M$]   "
    pTotalBESSProfits                 "Total battery tecn profits        [M$]   "
-   pResultDSM       (i,*,*,rp,k    ) "Results DSM                       [GW]   "
+   pResultDSM       (rp,k,*,*,i    ) "Results DSM                       [GW]   "
    pActualSysInertia(      k ,rp   ) "actual system inertia             [s]    "
    pRoCoF_k         (      rp,k,g  ) "Scaled power gain factor of gen g [p.u.] "
    pRoCoF_SG_M      (      rp,k    ) "Scaled power gain factor of SG    [p.u.] "
@@ -344,7 +353,9 @@ positive variables
    vRoCoF_AuxV     (rp,k,g  ,m    ) "variable representing the product of binary vb and continuous vM-VI"
    vRoCoF_SysM_AuxZ(rp,k,g        ) "variable representing the product of binary vu and continuous vM   "
    vRoCoF_SysM_AuxV(rp,k,g,  m    ) "variable representing the product of binary vb and continuous vM   "
-   vH2ns           (rp,k,h2i,h2sec) "Hydrogen non-served                         [t ]"
+   vCO2Overshoot                    "slack variable for CO2 budget overshoot     [MtCO2]"
+   vCO2Undershoot                   "slack variable for CO2 budget undershoot    [MtCO2]"
+   vH2NS           (rp,k,h2i,h2sec) "Hydrogen non-served                         [t ]"
    vH2Prod         (rp,k,h2u      ) "Hydrogen generation of the unit             [t ]"
    vH2Consump      (rp,k,h2u      ) "Power consumption of hydrogen the unit      [GW]"
 ;
@@ -473,13 +484,15 @@ equations
    eRoCoF_SyEq4   (rp,k      )  "linear equation for RoCoF including investment       "
    eRoCoF_SyEq5   (rp,k      )  "linear equation for RoCoF including investment       "
 *  equations for hydrogen
-   eH2_MaxProd    (rp,k,h2u      )  "H2 production limit of hydrogen unit [t ]"
-   eH2_MaxCons    (rp,k,h2u      )  "H2 cosumption limit of hydrogen unit [GW]"
-   eH2_Convers    (rp,k,h2u      )  "conversion from energy to H2         [t ]"
-   eH2_Balance    (rp,k,h2i,h2sec)  "H2 balance at each hydrogen node     [t ]"
+   eH2_MaxProd    (rp,k,h2u      )  "H2 production limit of hydrogen unit   [t ]      "
+   eH2_MaxCons    (rp,k,h2u      )  "H2 cosumption limit of hydrogen unit   [GW]      "
+   eH2_Convers    (rp,k,h2u      )  "conversion from energy to H2           [t ]      "
+   eH2_Balance    (rp,k,h2i,h2sec)  "H2 balance at each hydrogen node       [t ]      "
+*  equations for CO2
+   eCO2_Budget                 "CO2 Budget constraint                       [MtCO2]   "
 *  equations for ex-post calculation of voltage angles in SOCP
-   eDummyOf                    "Dummy objective function                             "
-   eDummyAngDiff  (rp,k,i,j  ) "Dummy equation for voltage angle difference  [rad]   "
+   eDummyOf                    "Dummy objective function                              "
+   eDummyAngDiff  (rp,k,i,j  ) "Dummy equation for voltage angle difference [rad]     "
 ;
 
 *-------------------------------------------------------------------------------
@@ -489,18 +502,21 @@ equations
 eTotalVCost..
    vTotalVCost =e=
 * operational costs
-   + sum[(rpk(rp,k),i        ), pWeight_rp(rp)*pWeight_k(k)*pENSCost             * vPNS     (rp,k,i)    ]
-   + sum[(rpk(rp,k),i,seg    ), pWeight_rp(rp)*pWeight_k(k)*pDSMShedCost(seg)    * vDSM_Shed(rp,k,i,seg)]
-   + sum[(rpk(rp,k),i,sec    ), pWeight_rp(rp)*pWeight_k(k)*pDSMShiftCost(rp,k,i)* vDSM_Dn  (rp,k,i,sec)]
-   + sum[(rpk(rp,k),s        ), pWeight_rp(rp)*pWeight_k(k)*pENSCost/2           *[vSpillag (rp,k,s)+vWaterSell(rp,k,s)$[pRegretCalc]]]
-   + sum[(rpk(rp,k),t        ), pWeight_rp(rp)*pWeight_k(k)*pStartupCost (t)     * vStartup (rp,k,t)    ]
-   + sum[(rpk(rp,k),t        ), pWeight_rp(rp)*pWeight_k(k)*pInterVarCost(t)     * vCommit  (rp,k,t)    ]
-   + sum[(rpk(rp,k),t        ), pWeight_rp(rp)*pWeight_k(k)*pSlopeVarCost(t)     * vGenP    (rp,k,t)    ]
-   + sum[(rpk(rp,k),s        ), pWeight_rp(rp)*pWeight_k(k)*pOMVarCost   (s)     * vGenP    (rp,k,s)    ]
-   + sum[(rpk(rp,k),r        ), pWeight_rp(rp)*pWeight_k(k)*pOMVarCost   (r)     * vGenP    (rp,k,r)    ]
+   + sum[(rpk(rp,k),i        ), pWeight_rp(rp)*pWeight_k(k)*pENSCost             * vPNS         (rp,k,i)    ]
+   + sum[(rpk(rp,k),i,seg    ), pWeight_rp(rp)*pWeight_k(k)*pDSMShedCost(seg)    * vDSM_Shed    (rp,k,i,seg)]
+   + sum[(rpk(rp,k),i,sec    ), pWeight_rp(rp)*pWeight_k(k)*pDSMShiftCost(rp,k,i)* vDSM_Dn      (rp,k,i,sec)]
+   + sum[(rpk(rp,k),s        ), pWeight_rp(rp)*pWeight_k(k)*pENSCost/2           *[vSpillag     (rp,k,s)+vWaterSell(rp,k,s)$[pRegretCalc]]]
+   + sum[(rpk(rp,k),t        ), pWeight_rp(rp)*pWeight_k(k)*pStartupCost (t)     * vStartup     (rp,k,t)    ]
+   + sum[(rpk(rp,k),t        ), pWeight_rp(rp)*pWeight_k(k)*pInterVarCost(t)     * vCommit      (rp,k,t)    ]
+   + sum[(rpk(rp,k),t        ), pWeight_rp(rp)*pWeight_k(k)*pSlopeVarCost(t)     * vGenP        (rp,k,t)    ]
+   + sum[(rpk(rp,k),s        ), pWeight_rp(rp)*pWeight_k(k)*pOMVarCost   (s)     * vGenP        (rp,k,s)    ]
+   + sum[(rpk(rp,k),r        ), pWeight_rp(rp)*pWeight_k(k)*pOMVarCost   (r)     * vGenP        (rp,k,r)    ]
+* CO2 operational costs   
+   + sum[(rpk(rp,k),t        ), pWeight_rp(rp)*pWeight_k(k)*pCO2Emis     (t)     * vGenP        (rp,k,t) * pCO2Price] $[pEnableCO2]
+   +                                                        pCO2Penalty          * vCO2Overshoot                      $[pEnableCO2]  
 * hydrogen operational costs
-   + sum[           h2u       ,                             pH2OMVarCost (h2u)   * vH2Invest(     h2u      )] $[pEnableH2]
-   + sum[(rpk(rp,k),h2i,h2sec), pWeight_rp(rp)*pWeight_k(k)*pH2NSCost            * vH2ns    (rp,k,h2i,h2sec)] $[pEnableH2]
+   + sum[           h2u       ,                             pH2OMVarCost (h2u)   * vH2Invest    (     h2u      )] $[pEnableH2]
+   + sum[(rpk(rp,k),h2i,h2sec), pWeight_rp(rp)*pWeight_k(k)*pH2NSCost            * vH2NS        (rp,k,h2i,h2sec)] $[pEnableH2]
 * cycle aging costs
    + sum[(rpk(rp,k),s,a)$[cdsf(s)],
                         pWeight_rp(rp)*pWeight_k(k)*pCDSF_Cost(s,a)  * vCDSF_dis(rp,k,s,a)]
@@ -1031,6 +1047,14 @@ eSOCP_CanLineSLimit(rpk(rp,k),i,j,c) $[[lc(i,j,c) or  lc(j,i,c)] and [pTransNet 
 
 eTranInves (i,j,c) $[lc(i,j,c) and pTransNet and ord(c)>1]..
     vLineInvest(i,j,c) =l= vLineInvest(i,j,c-1) + sum[le(i,j,c-1),1];
+    
+*------- equation CO2 budget -------
+
+eCO2_Budget$[pEnableCO2]..
+   + sum[(rpk(rp,k),t), pWeight_rp(rp)*pWeight_k(k) * pCO2Emis(t) * vGenP(rp,k,t)] + vCO2Undershoot - vCO2Overshoot
+  =e=
+   pCO2Budget
+;
 
 *----------------------- Hydrogen constraints (H2) ---------------------
 
@@ -1042,7 +1066,7 @@ eH2_Balance(rpk(rp,k),h2i,h2sec) $[pEnableH2]..
    + sum[h2gh2i(h2g  ,h2i), vH2Prod(rp,k,h2g      )]
    + sum[h2line(h2j  ,h2i), vH2Flow(rp,k,h2j,h2i  )]
    - sum[h2line(h2i  ,h2j), vH2Flow(rp,k,h2i,h2j  )]
-   +                        vH2ns  (rp,k,h2i,h2sec)
+   +                        vH2NS  (rp,k,h2i,h2sec)
   =e=
    + pH2Demand (rp,k,h2i,h2sec)
 ;
@@ -1303,6 +1327,7 @@ pStartupCost (t) = tThermalGen(t,'StartupCost' ) * 1e-6 * tThermalGen(t,'FuelCos
 pInvestCost  (t) = tThermalGen(t,'InvestCost'  ) * 1e-3 *
                    pMaxProd   (t               ) ;
 pFirmCapCoef (t) = tThermalGen(t,'FirmCapCoef' ) ;
+pCO2Emis     (t) = tThermalGen(t,'CO2Emis'     ) * 1e-3 ;
 * For the linearization of the RoCoF, the UC variables must have a limit of 1
 pExisUnits   (t) = min[1,tThermalGen(t,'ExisUnits')] ;
 pMaxInvest   (t) $[pExisUnits(t)=1] = 0              ;
@@ -1561,7 +1586,7 @@ if(card(i)=1,
 );
 
 * bounds for hydrogen variables
-vH2ns.up    (rpk(rp,k),       h2i,h2sec)$[pEnableH2] =  pH2Demand   (rp,k,h2i,h2sec) ;
+vH2NS.up    (rpk(rp,k),       h2i,h2sec)$[pEnableH2] =  pH2Demand   (rp,k,h2i,h2sec) ;
 vH2Flow.up  (rpk(rp,k),h2line(h2i,h2j) )$[pEnableH2] =  pH2Fmax     (     h2i,h2j  ) ;
 vH2Flow.lo  (rpk(rp,k),h2line(h2i,h2j) )$[pEnableH2] = -pH2Fmax     (     h2i,h2j  ) ;
 vH2Invest.up(          h2g             )$[pEnableH2] =  pH2MaxInvest(     h2g      ) ;
@@ -1606,21 +1631,31 @@ if(pEnableSOCP,
 *-------------------------------------------------------------------------------
 *             Calculating ex post parameters for results
 *-------------------------------------------------------------------------------
-pSummary ('Obj Func  Model           [M$]') = LEGO.objVal  + eps ;
-pSummary ('CPU Time  Model generation [s]') = LEGO.resGen  + eps ;
-pSummary ('CPU Time  Model solution   [s]') = LEGO.resUsd  + eps ;
-pSummary ('Number of variables           ') = LEGO.numVar  + eps ;
-pSummary ('Number of discrete variables  ') = LEGO.numDVar + eps ;
-pSummary ('Number of equations           ') = LEGO.numEqu  + eps ;
-pSummary ('Number of nonzero elements    ') = LEGO.numNZ   + eps ;
-pSummary ('Best possible solution for MIP') = LEGO.objest  + eps ;
-pSummary ('Results for regret calculation') = pRegretCalc  + eps ;
-pSummary ('Network Constraints 1->yes    ') = pTransNet    + eps ;
-pSummary ('1->SOCP , 0->DC               ') = pEnableSOCP  + eps ;
-pSummary ('1->RoCoF, 0->MinInert         ') = pEnableRoCoF + eps ;
+pSummary('Obj Func  Model                      [M$   ]  ') = LEGO.objVal  + eps ;
+pSummary('CAPEX (GEP, TEP, H2GEP)              [M$   ]  ') = + sum[ga(g    ), pInvestCost  (g    )* vGenInvest.l (g    )]
+                                                             + sum[lc(i,j,c), pFixedCost   (i,j,c)* vLineInvest.l(i,j,c)]
+                                                             + sum[h2u      , pH2InvestCost(h2u  )* vH2Invest.l  (h2u  )] $[pEnableH2]
+                                                             + eps;
+pSummary('OPEX                                 [M$   ]  ') = vTotalVCost.l
+                                                             - sum[ga(g    ), pInvestCost  (g    )* vGenInvest.l (g    )]
+                                                             - sum[lc(i,j,c), pFixedCost   (i,j,c)* vLineInvest.l(i,j,c)]
+                                                             - sum[h2u      , pH2InvestCost(h2u  )* vH2Invest.l  (h2u  )] $[pEnableH2]
+                                                             - eps;
 
-pSummary ('SOCP Mean Error') $[not pEnableSOCP] = eps ;
-pSummary ('SOCP Mean Error') $[    pEnableSOCP] =
+pSummary('CPU Time  Model generation           [s    ]  ') = LEGO.resGen  + eps ;
+pSummary('CPU Time  Model solution             [s    ]  ') = LEGO.resUsd  + eps ;
+pSummary('Number of variables                           ') = LEGO.numVar  + eps ;
+pSummary('Number of discrete variables                  ') = LEGO.numDVar + eps ;
+pSummary('Number of equations                           ') = LEGO.numEqu  + eps ;
+pSummary('Number of nonzero elements                    ') = LEGO.numNZ   + eps ;
+pSummary('Best possible solution for MIP                ') = LEGO.objest  + eps ;
+pSummary('Results for regret calculation                ') = pRegretCalc  + eps ;
+pSummary('Network Constraints 1->yes                    ') = pTransNet    + eps ;
+pSummary('1->SOCP , 0->DC                               ') = pEnableSOCP  + eps ;
+pSummary('1->RoCoF, 0->MinInert                         ') = pEnableRoCoF + eps ;
+
+pSummary('SOCP Mean Error') $[not pEnableSOCP] = eps ;
+pSummary('SOCP Mean Error') $[    pEnableSOCP] =
  sum[(rpk(rp,k),i,j)$isLine(i,j),
    + vSOCP_cii.l(rp,k,i  ) * vSOCP_cii.l(rp,k,j  )
    - vSOCP_cij.l(rp,k,i,j) * vSOCP_cij.l(rp,k,i,j)
@@ -1629,27 +1664,34 @@ pSummary ('SOCP Mean Error') $[    pEnableSOCP] =
    + vSOCP_cii.l(rp,k,i  ) * vSOCP_cii.l(rp,k,j  )]
 ;
 
-pSummary('Total system demand [GWh]') = sum[(rp,k),pWeight_rp(rp)*pWeight_k(k)*sum[j, pDemandP (rp,k,j)]] ;
-pSummary('Total renewable + storage production [GWh]') = sum[(rp,k),pWeight_rp(rp)*pWeight_k(k)*[+ sum[gi(r,j), vGenP.L(rp,k,r)]
-                                                                                                 + sum[gi(s,j), vGenP.L(rp,k,s)]]] ;
-pSummary('Total thermal production  [GWh] ') = sum[(rp,k),pWeight_rp(rp)*pWeight_k(k)*[+ sum[gi(t,j), vGenP.L(rp,k,t)]]] ;
-pSummary('Actual green  production  [p.u.]') = pSummary('Total renewable + storage production [GWh]') / pSummary('Total system demand [GWh]') ;
-pSummary('Actual thermal production [p.u.]') = pSummary('Total thermal production  [GWh] '          ) / pSummary('Total system demand [GWh]') ;
+pSummary('Total system demand                  [GWh  ]') = sum[(rp,k)        ,pWeight_rp(rp)*pWeight_k(k)*sum[j, pDemandP (rp,k,j)]] + eps;
+pSummary('Total renewable + storage production [GWh  ]') = sum[(rp,k)        ,pWeight_rp(rp)*pWeight_k(k)*[+ sum[gi(r,j), vGenP.L(rp,k,r)]
+                                                                                                           + sum[gi(s,j), vGenP.L(rp,k,s)]]] + eps;
+pSummary('Total renewable curtailment          [GWh  ]') = sum[(rp,k,gi(r,i)),[pResProfile(rp,k,i,r)*pMaxProd(r)*[vGenInvest.l(r)+pExisUnits(r)] - vGenP.l(rp,k,r)]*1e3] + eps ;                                                                                                
+pSummary('Total thermal production             [GWh  ]') = sum[(rp,k)        ,pWeight_rp(rp)*pWeight_k(k)*[+ sum[gi(t,j), vGenP.L(rp,k,t)]]] + eps;
+pSummary('Actual green  production             [p.u. ]') = pSummary('Total renewable + storage production [GWh  ]') / pSummary('Total system demand                  [GWh  ]') + eps;
+pSummary('Actual thermal production            [p.u. ]') = pSummary('Total thermal production             [GWh  ]') / pSummary('Total system demand                  [GWh  ]') + eps;
+pSummary('Actual CO2 emissions                 [MtCO2]') = sum[(rp,k,t)      ,pWeight_rp(rp)*pWeight_k(k)*  pCO2Emis(t) * vGenP.L(rp,k,t)] + eps;
 
-pSummary('Thermal            Investment [GW]') = sum[t        , vGenInvest.l (t    ) * pMaxProd(t    )];
-pSummary('Renewable          Investment [GW]') = sum[r        , vGenInvest.l (r    ) * pMaxProd(r    )];
-pSummary('Storage            Investment [GW]') = sum[s        , vGenInvest.l (s    ) * pMaxProd(s    )];
-pSummary('Transmission lines Investment [GW]') = sum[lc(i,j,c), vLineInvest.l(i,j,c) * pPmax   (i,j,c)];
+pSummary('Thermal            Investment        [GW   ]') = sum[t        , vGenInvest.l (t    ) * pMaxProd(t    )] + eps;
+pSummary('Renewable          Investment        [GW   ]') = sum[r        , vGenInvest.l (r    ) * pMaxProd(r    )] + eps;
+pSummary('Storage            Investment        [GW   ]') = sum[s        , vGenInvest.l (s    ) * pMaxProd(s    )] + eps; 
+pSummary('Transmission lines Investment        [GW   ]') = sum[lc(i,j,c), vLineInvest.l(i,j,c) * pPmax   (i,j,c)] + eps;
 
-pSummary('Cost renewable quota    [$/MWh]') = - eCleanProd.m  * 1e3 + eps;
-pSummary('Payment firm capacity   [$/MW ]') =   eFirmCapCon.m * 1e3 + eps;
-*calculated later with H2 results:   pSummary('Levelized cost of H2    [$/kg ]')
+pSummary('Energy non-supplied                  [GWh  ]') = sum[(rp,k),pWeight_rp(rp)*pWeight_k(k)*sum[j          , vPNS.l (rp,k,j        )]] + eps;
+pSummary('H2     non-supplied                  [t    ]') = sum[(rp,k),pWeight_rp(rp)*pWeight_k(k)*sum[(h2i,h2sec), vH2NS.l(rp,k,h2i,h2sec)]] + eps;
+*adapt when defining vCO2UpSlack & vCO2downSlack
+pSummary('CO2-target overshoot                 [MtCO2]') = vCO2Overshoot.l + eps;
+
+pSummary('Cost renewable quota                 [$/MWh]') = - eCleanProd.m  * 1e3 + eps;
+pSummary('Payment firm capacity                [$/MW ]') =   eFirmCapCon.m * 1e3 + eps;
+*calculated later with H2 results:   pSummary('Levelized cost of H2            [$/kg ]')
 
 * --------------------------------------- Investment Results -----------------------------------
 
-pGenInvest (tec      ,'[MW]  ') = sum[gtec(ga(g),tec), pMaxProd(    g)*vGenInvest.l (    g)] * 1e3 + eps ;
-pGenInvest (tec      ,'[MVAR]') = sum[gtec(ga(g),tec), pMaxGenQ(    g)*vGenInvest.l (    g)] * 1e3 + eps ;
-pTraInvest (lc(i,j,c),'[MW]'  ) =                      pPmax   (i,j,c)*vLineInvest.l(i,j,c)  * 1e3 + eps ;
+pGenInvest (ga(g)    ,'[MW]  ') = pMaxProd(    g)*vGenInvest.l (    g) * 1e3 + eps ;
+pGenInvest (ga(g)    ,'[MVar]') = pMaxGenQ(    g)*vGenInvest.l (    g) * 1e3 + eps ;
+pTraInvest (lc(i,j,c),'[MW]  ') = pPmax   (i,j,c)*vLineInvest.l(i,j,c) * 1e3 + eps ;
 
 * ---------------------------------- Operating Dispatch Results --------------------------------
 
@@ -1657,6 +1699,9 @@ pCommit  (p,t    ) = sum[hindex(p,rpk(rp,k)), vCommit.l (rp,k,t)    ]   + eps ;
 pGenP    (p,ga(g)) = sum[hindex(p,rpk(rp,k)), vGenP.l   (rp,k,g)*1e3]   + eps ;
 pGenQ    (p,ga(g)) = sum[hindex(p,rpk(rp,k)), vGenQ.l   (rp,k,g)*1e3]   + eps ;
 pChrP    (p,   s ) = sum[hindex(p,rpk(rp,k)), vConsump.l(rp,k,s)*1e3]   + eps ;
+pCurtP_k (rp,k,r ) = sum[   gi(r,i)         ,[pResProfile(rp,k,i,r)*pMaxProd(r)*[vGenInvest.l(r)+pExisUnits(r)] - vGenP.l(rp,k,r)]*1e3] + eps ;
+pCurtP_rp(rp,  r ) = sum[(k,gi(r,i))        ,[pResProfile(rp,k,i,r)*pMaxProd(r)*[vGenInvest.l(r)+pExisUnits(r)] - vGenP.l(rp,k,r)]*1e3] + eps ;
+
 
 pStIntra (k,s,rp) $[rpk(rp,k) and [card(rp)=1]                      ] = vStIntraRes.l(rp,k,s) / [pMaxProd(s)*[vGenInvest.l(s)+pExisUnits(s)]*pE2PRatio(s) + 1e-6] + eps ;
 pStIntra (k,s,rp) $[rpk(rp,k) and [card(rp)>1] and [not pIsHydro(s)]] = vStIntraRes.l(rp,k,s) / [pMaxProd(s)*[vGenInvest.l(s)+pExisUnits(s)]*pE2PRatio(s) + 1e-6] + eps ;
@@ -1828,38 +1873,38 @@ pActualSysInertia(k,rp) $[pEnableRoCoF] =[[
 
 * ---------------------------------------- DSM results ---------------------------------------
 
-pResultDSM(i,sec,'Up  ',rp,k) = vDSM_Up.l  (rp,k,i,sec) + eps;
-pResultDSM(i,sec,'Down',rp,k) = vDSM_Dn.l  (rp,k,i,sec) + eps;
-pResultDSM(i,seg,'Shed',rp,k) = vDSM_Shed.l(rp,k,i,seg) + eps;
+pResultDSM(rp,k,'Up  ',sec,i) = vDSM_Up.l  (rp,k,i,sec) + eps;
+pResultDSM(rp,k,'Down',sec,i) = vDSM_Dn.l  (rp,k,i,sec) + eps;
+pResultDSM(rp,k,'Shed',seg,i) = vDSM_Shed.l(rp,k,i,seg) + eps;
 
 * ----------------------------------------- H2 results ---------------------------------------
 
 pH2price (h2sec,k,h2i,rp) $[rpk(rp,k) and pEnableH2] = eH2_Balance.m(rp,k,h2i,h2sec) * 1e3 / [pWeight_rp(rp)*pWeight_k(k)] + eps ;
 pH2Prod  (h2g  ,k,    rp) $[rpk(rp,k) and pEnableH2] = vH2Prod.l    (rp,k,h2g      ) * 1e3                                 + eps ;
 pH2Cons  (h2g  ,k,    rp) $[rpk(rp,k) and pEnableH2] = vH2Consump.l (rp,k,h2g      ) * 1e3                                 + eps ;
-pH2ns    (h2sec,k,h2i,rp) $[rpk(rp,k) and pEnableH2] = vH2ns.l      (rp,k,h2i,h2sec) * 1e3                                 + eps ;
+pH2ns    (h2sec,k,h2i,rp) $[rpk(rp,k) and pEnableH2] = vH2NS.l      (rp,k,h2i,h2sec) * 1e3                                 + eps ;
 pH2Invest(h2g  ,'MW'    ) $[              pEnableH2] = vH2Invest.l  (h2g           ) * 1e3 *  pH2MaxCons(h2g)              + eps ;
 
-pSummary('Levelized cost of H2    [$/kg ]') $[pEnableH2 and sum[(rpk(rp,k),h2u      )  , pWeight_rp(rp)*pWeight_k(k)                           * vH2Prod.l   (rp,k,h2u)]] =
-                                                         [+ sum[           h2u         ,                             pH2InvestCost(h2u)        * vH2Invest.l (     h2u)]
-                                                          + sum[           h2u         ,                             pH2OMVarCost (h2u)        * vH2Invest.l (     h2u)]
-                                                          + sum[(rpk(rp,k),h2gi(h2g,i)),                             pMC          (    rp,k,i) * vH2Consump.l(rp,k,h2g)]] * 1e3
-                                                          / sum[(rpk(rp,k),h2u        ), pWeight_rp(rp)*pWeight_k(k)                           * vH2Prod.l   (rp,k,h2u)]
-                                                          + eps ;
+pSummary('Levelized cost of H2                 [$/kg ]') $[pEnableH2 and sum[(rpk(rp,k),h2u      )  , pWeight_rp(rp)*pWeight_k(k)                           * vH2Prod.l   (rp,k,h2u)]] =
+                                                                      [+ sum[           h2u         ,                             pH2InvestCost(h2u)        * vH2Invest.l (     h2u)]
+                                                                       + sum[           h2u         ,                             pH2OMVarCost (h2u)        * vH2Invest.l (     h2u)]
+                                                                       + sum[(rpk(rp,k),h2gi(h2g,i)),                             pMC          (    rp,k,i) * vH2Consump.l(rp,k,h2g)]] * 1e3
+                                                                       / sum[(rpk(rp,k),h2u        ), pWeight_rp(rp)*pWeight_k(k)                           * vH2Prod.l   (rp,k,h2u)]
+                                                                       + eps ;
 
 display pSummary;
 
 * -------------------------------- Export results to Excel file ------------------------------
 
 * data output to xls file
-put TMP putclose 'par=pSummary          rdim=1 rng=Summary!a1 '/ 'par=pCommit    rdim=1 rng=UC!a1'         / 'par=pGenP      rdim=1 rng=GenP!a1'  / 'par=pTecProd   rdim=1 rng=TotalEn!a1'  /
-                 'par=pStIntra          rdim=1 rng=StIntra!a1 '/ 'par=pStLevel   rdim=1 rng=StLevel!a1'    / 'par=pSRMC      rdim=1 rng=MC!a1'    / 'par=pGenInvest rdim=1 rng=GenInvest!a1'/
-                 'par=pLineP            rdim=1 rng=LineP!a1   '/ 'par=pLineQ     rdim=1 rng=LineQ!a1  '    / 'par=pVoltage   rdim=1 rng=Volt!a1'  / 'par=pGenQ      rdim=1 rng=GenQ!a1'     /
-                 'par=pTheta            rdim=1 rng=Angle!a1   '/ 'par=pBusRes    rdim=1 rng=BusRes!a1 '    / 'par=pResulCDSF rdim=1 rng=CDSF!a1 ' / 'par=pInertDual rdim=1 rng=InertDual!a1'/
-                 'par=pEconomicResults  rdim=1 rng=Profits!a1 '/ 'par=pTraInvest rdim=3 rng=TranInvest!a1' / 'par=pResultDSM rdim=2 rng=DSM!a1'   / 'par=pChrP      rdim=1 rng=Charge!a1'   /
-                 'par=pActualSysInertia rdim=1 rng=RoCoF!a1   '/ 'par=pH2price   rdim=2 rng=H2price!a1'    / 'par=pH2Prod    rdim=2 rng=H2Prod!a1'/ 'par=pH2Cons    rdim=2 rng=H2Cons!a1'   /
-                 'par=pH2ns             rdim=2 rng=H2ns!a1    '/ 'par=pH2Invest  rdim=1 rng=H2Invest!a1'   /
-execute_unload   'tmp_%gams.user1%.gdx' pSummary pCommit pGenP pTecProd pStIntra pStLevel pSRMC pGenInvest pLineP pLineQ pVoltage pGenQ pTheta pBusRes pResulCDSF pInertDual pEconomicResults pTraInvest pResultDSM pChrP pActualSysInertia pH2price pH2Prod pH2Cons pH2ns pH2Invest
+put TMP putclose 'par=pSummary          rdim=1 rng=Summary!a1' / 'par=pCommit    rdim=1 rng=UC!a1'          / 'par=pGenP      rdim=1 rng=GenP!a1'        / 'par=pTecProd   rdim=1 rng=TotalEn!a1'  /
+                 'par=pStIntra          rdim=1 rng=StIntra!a1' / 'par=pStLevel   rdim=1 rng=StLevel!a1'     / 'par=pSRMC      rdim=1 rng=MC!a1'          / 'par=pGenInvest rdim=1 rng=GenInvest!a1'/
+                 'par=pLineP            rdim=1 rng=LineP!a1'   / 'par=pLineQ     rdim=1 rng=LineQ!a1'       / 'par=pVoltage   rdim=1 rng=Volt!a1'        / 'par=pGenQ      rdim=1 rng=GenQ!a1'     /
+                 'par=pTheta            rdim=1 rng=Angle!a1'   / 'par=pBusRes    rdim=1 rng=BusRes!a1'      / 'par=pResulCDSF rdim=1 rng=CDSF!a1'        / 'par=pInertDual rdim=1 rng=InertDual!a1'/
+                 'par=pEconomicResults  rdim=1 rng=Profits!a1' / 'par=pTraInvest rdim=3 rng=TranInvest!a1'  / 'par=pResultDSM rdim=3 rng=DSM!a1'         / 'par=pChrP      rdim=1 rng=Charge!a1'   /
+                 'par=pCurtP_k          rdim=2 rng=Curtail!a1' / 'par=pCurtP_rp  rdim=1 rng=Curtail!p1'     / 'par=pActualSysInertia rdim=1 rng=RoCoF!a1'/ 'par=pH2price   rdim=2 rng=H2price!a1'  / 'par=pH2Prod    rdim=2 rng=H2Prod!a1'   /
+                 'par=pH2Cons           rdim=2 rng=H2Cons!a1'  / 'par=pH2ns      rdim=2 rng=H2ns!a1'        / 'par=pH2Invest  rdim=1 rng=H2Invest!a1'    /
+execute_unload   'tmp_%gams.user1%.gdx' pSummary pCommit pGenP pTecProd pStIntra pStLevel pSRMC pGenInvest pLineP pLineQ pVoltage pGenQ pTheta pBusRes pResulCDSF pInertDual pEconomicResults pTraInvest pResultDSM pChrP pCurtP_k pCurtP_rp pActualSysInertia pH2price pH2Prod pH2Cons pH2ns pH2Invest
 
 execute          'gdxxrw tmp_"%gams.user1%".gdx SQ=n EpsOut=0 O=tmp_"%gams.user1%".xlsx @tmp_"%gams.user1%".txt'
 execute          'del    tmp_"%gams.user1%".gdx                                                                '
