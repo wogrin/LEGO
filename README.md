@@ -11,8 +11,9 @@ This version of Low-carbon Expansion Generation Optimization (LEGO) has been ext
 Its unique temporal structure allows LEGO to function with either chronological hourly data, or all kinds of representative periods. LEGO allows for modeling short- and long-term storage technologies with representative periods, e.g., long-term operation of large hydro reservoirs can be represented without having to renounce computational advantages of representative periods. Temporal flexibility and modularity of the model is something quite unique (that enables a plethora of many different studies) with one single model.
 
 # Case Studies
-* **LEGO-Base-Case-Study-7LRP**: Base case study for the model with stylized power system and 7 representative days
-* **EnStOpInvMo-7LRP-kmeans-net.xlsm**: Case study used in paper [[2]](https://doi.org/10.1016/j.apenergy.2020.115925) [This data file belongs to a preliminary version of the code and is no longer compatible with the current LEGO.gms file]
+* **LEGO-Base-Case-Study-7LRP**: Base case study for the model with stylized power system and 7 representative days.
+* **LEGO-Base-Case-Study-Hourly**: Base case study for the model with stylized power system and chronological hourly representation of time horizon of one year.
+* **EnStOpInvMo-7LRP-kmeans-net.xlsm**: Case study used in paper [[2]](https://doi.org/10.1016/j.apenergy.2020.115925) [This data file belongs to a preliminary version of the code and is no longer compatible with the current LEGO.gms file].
 
 # References
 [1] [S. Wogrin, D. Tejada-Arango, U. Bachhiesl, B.F. Hobbs, The full Low-carbon Expansion Generation Optimization (LEGO) model, available at arxiv http://arxiv.org/abs/2109.01368, and submitted to Applied Energy.]
