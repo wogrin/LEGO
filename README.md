@@ -2,6 +2,8 @@
 
 LEGO is a mixed integer quadratically constrained optimization problem and has been designed to be a multi-purpose tool, like a Swiss army knife, that can be employed to study many different aspects of the energy sector. Ranging from short-term unit commitment to long-term generation and transmission expansion planning. The underlying modeling philosophies are: modularity and flexibility. LEGO is also composed of thematic modules that can be added or removed from the model easily via data options depending on the scope of the study. You can use this code freely, but please cite our paper [1] if you do.
 
+![LEGO's architecture.](LEGO_Module.png)
+
 This version of Low-carbon Expansion Generation Optimization (LEGO) has been extended and includes:
 * Freely available and code (and data examples) shared on Github. And there are some novelties.
 * Flexibility:  1) operation only / TEP / GEP / GEPTEP ; 2) rMIP / MIP / MIQCP; 3) chronological hours / representative periods / load blocks
