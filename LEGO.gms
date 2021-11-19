@@ -8,6 +8,12 @@ Developed by
    wogrin@tugraz.at
    Diego Alejandro Tejada Arango
    dtejada@comillas.edu
+   
+Contributors
+   Thomas Klatzer
+   thomas.klatzer@tugraz.at
+   Robert Gaugl
+   robert.gaugl@tugraz.at
 
 Version: 2021-06
 Integrated version including: DSM + TEP (SOCP) + H2 (Basic)
