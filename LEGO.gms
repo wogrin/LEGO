@@ -11,17 +11,21 @@ Developed by
 
 Version: 2021-06
 Integrated version including: DSM + TEP (SOCP) + H2 (Basic)
+Code Folding works with GAMS Studio version 32 or newer
+(Fold all: Alt+O; Unfold all: Shift+Alt+O)
 
 $OffText
+
 
 *-------------------------------------------------------------------------------
 *                                 Options
 *-------------------------------------------------------------------------------
-
-$OnEmpty OnMulti OffListing
-
 * definition of symbol for comments at the end of the line
 $EOLCOM //
+
+$onFold // Options -------------------------------------------------------------
+
+$OnEmpty OnMulti OffListing
 
 * checking user 1 definition
 $if %gams.user1% == "" $log user1 not defined
@@ -52,10 +56,13 @@ option savepoint=      0 ;   // save into a gdx file solution (0=no save, 1=only
 * profile options
 option profile=1, profileTol = 0.01 ;
 
+$offFold
+
+
 *-------------------------------------------------------------------------------
 *                                Definitions
 *-------------------------------------------------------------------------------
-
+$onFold // Sets ----------------------------------------------------------------
 sets
 * sets to preserve chronology
    p                "               periods                           "
@@ -117,6 +124,10 @@ sets
 ;
 alias (i,j), (t,tt), (rp,rpp), (k,kk), (p,pp), (r,rr), (v,vv), (k,kk), (c,cc),(h2i,h2j)
 ;
+;
+$offFold
+
+$onFold // Parameters ----------------------------------------------------------
 
 parameters
 * general parameters
@@ -300,6 +311,11 @@ parameters
    pH2Prod          (h2u  ,k,    rp) "Hydrogen unit production          [  kg] "
    pH2Cons          (h2u  ,k,    rp) "Hydrogen unit consumption         [  MW] "
 ;
+
+$offFold
+
+$onFold // Variables -----------------------------------------------------------
+
 variables
    vTotalVCost              "Total system variable cost                  [M$  ]"
    vDummyOf                 "Dummy objective function variable                 "
@@ -359,6 +375,11 @@ positive variables
    vH2Prod         (rp,k,h2u      ) "Hydrogen generation of the unit             [t ]"
    vH2Consump      (rp,k,h2u      ) "Power consumption of hydrogen the unit      [GW]"
 ;
+
+$offFold
+
+$onFold // Equations -----------------------------------------------------------
+
 equations
    eTotalVCost                 "total system variable cost                   [M$] "
 * general system constraints
@@ -495,10 +516,13 @@ equations
    eDummyAngDiff  (rp,k,i,j  ) "Dummy equation for voltage angle difference [rad]     "
 ;
 
+$offFold
+
+
 *-------------------------------------------------------------------------------
 *                          Mathematical Formulation
 *-------------------------------------------------------------------------------
-
+$onFold // Objective Function --------------------------------------------------
 eTotalVCost..
    vTotalVCost =e=
 * operational costs
@@ -536,8 +560,9 @@ eTotalVCost..
 * hydrogen investment costs
    + sum[h2u      , pH2InvestCost(h2u  )* vH2Invest  (h2u  )] $[pEnableH2]
 ;
+$offFold
 
-*---------------------------- Power System Equations ---------------------------
+$onFold // Power System Equations ----------------------------------------------
 
 eSN_BalanceP(rpk(rp,k),iact(i))$[not pTransNet]..
    + sum[gi (t,j)   , vGenP     (rp,k,t)]
@@ -556,7 +581,10 @@ eSN_BalanceP(rpk(rp,k),iact(i))$[not pTransNet]..
 e2ReserveUp(rpk(rp,k))$[p2ndResUp].. sum[t, v2ndResUP(rp,k,t)] + sum[s, v2ndResUP(rp,k,s)] =g= p2ndResUp * sum[i, pDemandP(rp,k,i)] ;
 e2ReserveDw(rpk(rp,k))$[p2ndResDw].. sum[t, v2ndResDW(rp,k,t)] + sum[s, v2ndResDW(rp,k,s)] =g= p2ndResDw * sum[i, pDemandP(rp,k,i)] ;
 
-*-------------------------- Demand-side Management -----------------------------
+$offFold
+
+$onFold // Demand-side Management ----------------------------------------------
+
 eTotalBalance_DSM(rp,iact(i),sec)$[pDSM] ..
                        + sum[k$[rpk(rp,k)], vDSM_Up(rp,k,i,sec)]
                        - sum[k$[rpk(rp,k)], vDSM_Dn(rp,k,i,sec)]
@@ -572,7 +600,9 @@ eMaxUp_DSM (rpk(rp,k),iact(i),sec) $[pDSM] .. vDSM_Up(rp,k,i,sec) =l= pMaxUpDSM 
 
 eMaxDn_DSM (rpk(rp,k),iact(i),sec) $[pDSM] .. vDSM_Dn(rp,k,i,sec) =l= pMaxDnDSM (rp,k,i,sec);
 
-*------------------------- Unit Commitment Constraints -------------------------
+$offFold
+
+$onFold // Unit Commitment Constraints -----------------------------------------
 
 eUCMaxOut1(rpk(rp,k),t)..
    + vGenP1   (rp,k,t)
@@ -631,7 +661,9 @@ eThRampDw (rpk(rp,k)  ,t)..
 eThMaxUC  (rpk(rp,k)  ,t)..
    + vCommit  (rp,k   ,t) =l= vGenInvest(t) + pExisUnits(t) ;
 
-*-------------------------- Storage Units Constraints --------------------------
+$offFold
+
+$onFold // Storage Units Constraints -------------------------------------------
 
 eStIntraRes(rpk(rp,k),   s) $[[card(rp)=1] or [card(rp)>1 and not pIsHydro(s)] and not cdsf(s)]..
    + vStIntraRes(rp,k--1,s) $[ card(rp)>1             ]
@@ -671,7 +703,9 @@ eStMinIntraRes(rpk(rp,k),s).. vStIntraRes(rp,k,s) =g= pMaxProd(s)*[vGenInvest(s)
 eStMaxInterRes(p,s)$[mod(ord(p),pMovWind)=0].. vStInterRes(p,s) =l= pMaxProd(s)*[vGenInvest(s)+pExisUnits(s)] * pE2PRatio(s)                 ;
 eStMinInterRes(p,s)$[mod(ord(p),pMovWind)=0].. vStInterRes(p,s) =g= pMaxProd(s)*[vGenInvest(s)+pExisUnits(s)] * pE2PRatio(s) * pMinReserve(s);
 
-*------------------------ Renewable Energy Constraints --------------------------
+$offFold
+
+$onFold // Renewable Energy Constraints ----------------------------------------
 
 eReMaxProd(rpk(rp,k),r)..
    + vGenP(rp,k,r) =l= sum[gi(r,i),[pMaxProd(r)*[vGenInvest(r)+pExisUnits(r)]]*pResProfile(rp,k,i,r)]
@@ -686,7 +720,9 @@ eFirmCapCon..
    + sum[g$ga(g), pFirmCapCoef(g)*pMaxProd(g)*[vGenInvest(g)+pExisUnits(g)]]
    =g= pMinFirmCap*pPeakDemand
 ;
-*--------------------- Rate of Change of Frequency (RoCoF)-----------------------
+$offFold
+
+$onFold // Rate of Change of Frequency (RoCoF) ---------------------------------
 
 * default constraints when we are not using RoCoF contraints
 eMinInertia(rpk(rp,k))$[not pEnableRoCoF and pMinInertia].. sum[t, vCommit(rp,k,t)*pInertiaConst(t)] =g= pMinInertia ;
@@ -732,8 +768,9 @@ eRoCoF_SyEq5(rpk(rp,k))$[pEnableRoCoF]..
    +sum[(gi(v,i),m),pMaxProd(v)*vRoCoF_AuxV     (rp,k,v,m)*pResProfile(rp,k,i,v)*2**[ord(m)-1]]
    +sum[ gi(v,i)   ,pMaxProd(v)*vRoCoF_VI_M     (rp,k    )*pResProfile(rp,k,i,v)*pExisUnits(v)]
 ;
+$offFold
 
-*-------------------- Cycle Depth Stress Function (CDSF) -----------------------
+$onFold // Cycle Depth Stress Function (CDSF) ----------------------------------
 
 eCDSF_dis(rpk(rp,k),s)$[cdsf(s)].. vGenP      (rp,k,s) =e= sum[a, vCDSF_dis(rp,k,s,a)] ;
 eCDSF_ch (rpk(rp,k),s)$[cdsf(s)].. vConsump   (rp,k,s) =e= sum[a, vCDSF_ch (rp,k,s,a)] ;
@@ -755,7 +792,10 @@ eCDSF_EndSoC(rpk(rp,k),s  )$[cdsf(s) and card(rp)=1 and ord(k)=card(k)]..
    + sum[a,vCDSF_SoC(rp,k,s,a)] =g= pIniReserve(s)
 ;
 
-*----------------------- DC Power Flow Formulation (DC) ------------------------
+$offFold
+
+$onFold // DC Power Flow Formulation (DC) --------------------------------------
+
 eDC_BalanceP(rpk(rp,k),iact(i))$[pTransNet and not pEnableSOCP]..
    + sum[gi(t,i  ),   vGenP     (rp,k,t    )]
    + sum[gi(r,i  ),   vGenP     (rp,k,r    )]
@@ -783,7 +823,10 @@ eDC_CanLinePij2(rpk(rp,k),lc(i,j,c)) $[pTransNet and not pEnableSOCP].. vLineP(r
 eDC_LimCanLine1(rpk(rp,k),lc(i,j,c)) $[pTransNet and not pEnableSOCP].. vLineP(rp,k,i,j,c)/             pPmax(i,j,c)  =g=   - vLineInvest(i,j,c) ;
 eDC_LimCanLine2(rpk(rp,k),lc(i,j,c)) $[pTransNet and not pEnableSOCP].. vLineP(rp,k,i,j,c)/             pPmax(i,j,c)  =l=     vLineInvest(i,j,c) ;
 
-*----------------- Second Order Cone Programming (SOCP) ------------------------
+$offFold
+
+$onFold // Second Order Cone Programming (SOCP) --------------------------------
+
 eSOCP_BalanceP(rpk(rp,k),i) $[pTransNet and pEnableSOCP] ..
    + sum[gi   (t,i), vGenP    (rp,k,t    )]
    + sum[gi   (r,i), vGenP    (rp,k,r    )]
@@ -1042,8 +1085,9 @@ eSOCP_CanLineSLimit(rpk(rp,k),i,j,c) $[[lc(i,j,c) or  lc(j,i,c)] and [pTransNet 
    +  pQmax (          i,j,c) * pQmax (     i,j,c)]**(1/2)
    *  vLineInvest     (i,j,c)
 ;
+$offFold
 
-*------- equation transmission line investment order of circuits -------
+$onFold // Equation Transmission LineInvestment Order of Circuits --------------
 
 eTranInves (i,j,c) $[lc(i,j,c) and pTransNet and ord(c)>1]..
     vLineInvest(i,j,c) =l= vLineInvest(i,j,c-1) + sum[le(i,j,c-1),1];
@@ -1055,8 +1099,10 @@ eCO2_Budget$[pEnableCO2]..
   =e=
    pCO2Budget
 ;
+$offFold
 
-*----------------------- Hydrogen constraints (H2) ---------------------
+$onFold // Equation CO2 Budget -------------------------------------------------
+
 
 eH2_MaxCons(rpk(rp,k),h2g) $[pEnableH2].. vH2Consump(rp,k,h2g) =l=                pH2MaxCons(h2g) *              [vH2Invest (     h2g) + pH2ExisUnits(h2g)] ;
 eH2_MaxProd(rpk(rp,k),h2g) $[pEnableH2].. vH2Prod   (rp,k,h2g) =l= pWeight_k(k) * pH2MaxCons(h2g) * pH2PE(h2g) * [vH2Invest (     h2g) + pH2ExisUnits(h2g)] ;
@@ -1070,8 +1116,9 @@ eH2_Balance(rpk(rp,k),h2i,h2sec) $[pEnableH2]..
   =e=
    + pH2Demand (rp,k,h2i,h2sec)
 ;
+$offFold
 
-*-------equation for ex-post calculation of voltage angles in DC and SOCP-------
+$onFold // Equation for Ex-Post Calculation of Voltage Angles in DC and SOCP ---
 
 eDummyOf $[pEnableDummyModel]..
    vDummyOf =e= sum[(rp,k,isLine(i,j)), vDummySlackP(rp,k,i,j) + vDummySlackN(rp,k,i,j)] ;
@@ -1084,19 +1131,32 @@ eDummyAngDiff(rpk(rp,k),i,j) $[isLine(i,j) and pEnableDummyModel]..
   =e=
    + pDelVolAng  (rp,k,i,j) ;
 
+$offFold
+
+
 *-------------------------------------------------------------------------------
-*                                MODELS
+*                                Models
 *-------------------------------------------------------------------------------
+$onFold // Model LEGO ----------------------------------------------------------
 
 model LEGO / all / ;
 LEGO.HoldFixed = 1 ; LEGO.optfile = 1; LEGO.TryLinear = 1 ;
 
+$offFold
+
+$onFold // Model mDummy --------------------------------------------------------
+
 model mDummy   /eDummyOf  eDummyAngDiff/ ;
 mDummy.holdfixed     = 1 ;
+
+$offFold
+
 
 *-------------------------------------------------------------------------------
 *                            Options for Solvers
 *-------------------------------------------------------------------------------
+$onFold // Options for Solvers -------------------------------------------------
+
 file     GOPT / gurobi.opt /               ;
 put      GOPT / 'IIS 1'    / 'rins 1000' / ;
 putclose GOPT
@@ -1105,9 +1165,13 @@ file     COPT / cplex.opt  /                   ;
 put      COPT / 'IIS yes'  / 'rinsheur 1000' / ;
 putclose COPT
 ;
+$offFold
+
+
 *-------------------------------------------------------------------------------
-*             Read input data from Excel and include into the model
+*             Read Input Data from Excel and Include into the Model
 *-------------------------------------------------------------------------------
+$onFold // Read input data from Excel and include into the model ---------------
 
 file TMP / tmp_%gams.user1%.txt /
 $OnEcho  > tmp_%gams.user1%.txt
@@ -1231,10 +1295,13 @@ execute 'del tmp_demand.txt         tmp_businfo.txt      tmp_facts.txt        tm
 execute 'del tmp_dsmshed.txt        tmp_dsmdelaytime.txt tmp_dsmshiftcost.txt tmp_h2_indices.txt  '
 execute 'del tmp_h2_demand.txt      tmp_h2_genunits.txt  tmp_h2network.txt                        '
 ;
+$offFold
+
 
 *-------------------------------------------------------------------------------
-*                   UPDATE OPTION BY BATCH FILE
+*                        Update Option by Batch File
 *-------------------------------------------------------------------------------
+$onFold // Update Option by Batch File -----------------------------------------
 
 if(%BatchUpdate%=1,
    if(%RelaxedMIP%=0, pRMIP      =0);
@@ -1245,9 +1312,13 @@ if(%BatchUpdate%=1,
 
 pEnableSOCP $[pTransNet=0] = 0 ;
 
+$offFold
+
+
 *-------------------------------------------------------------------------------
-*              Subsets activation and scaling parameters
+*                  Subsets Activation and Scaling Parameters
 *-------------------------------------------------------------------------------
+$onFold // Subsets activation and scaling parameters ---------------------------
 
 * active representative periods
 rpk(rp,k)$[pWeight_rp(rp) and pWeight_k(k)] = yes ;
@@ -1480,9 +1551,14 @@ pDelVolAng  (rpk(rp,k),i,j) $[isLine(i,j)] = 0;
 *pDeltaP(rpk(rp,k)) = pMinInertia * [pMaxRoCoF/pBaseFreq] ;
 pDeltaP(rpk(rp,k)) = 0.3 ;
 
+$offFold
+
+
 *-------------------------------------------------------------------------------
-*                  Bounds for variables
+*                          Bounds for Variables
 *-------------------------------------------------------------------------------
+$onFold // Bounds for variables ------------------------------------------------
+
 vGenP.up      (rpk(rp,k),t) =  pMaxProd  (t)                  *
                               [pMaxInvest(t) + pExisUnits(t)] ;
 vGenP1.up     (rpk(rp,k),t) = [pMaxProd  (t) - pMinProd  (t)] *
@@ -1591,9 +1667,13 @@ vH2Flow.up  (rpk(rp,k),h2line(h2i,h2j) )$[pEnableH2] =  pH2Fmax     (     h2i,h2
 vH2Flow.lo  (rpk(rp,k),h2line(h2i,h2j) )$[pEnableH2] = -pH2Fmax     (     h2i,h2j  ) ;
 vH2Invest.up(          h2g             )$[pEnableH2] =  pH2MaxInvest(     h2g      ) ;
 
+$offFold
+
+
 *-------------------------------------------------------------------------------
 *                                    Solve
 *-------------------------------------------------------------------------------
+$onFold // Solve ---------------------------------------------------------------
 
 * update info depending on UC.gdx file
 $if not exist "./UC.gdx" pRegretCalc =0                       ;
@@ -1628,9 +1708,14 @@ if(pEnableSOCP,
    pEnableDummyModel = 0
 );
 
+$offFold
+
+
 *-------------------------------------------------------------------------------
-*             Calculating ex post parameters for results
+*                  Calculating Ex Post Parameters for Results
 *-------------------------------------------------------------------------------
+$onFold // Summary -------------------------------------------------------------
+
 pSummary('Obj Func  Model                      [M$   ]  ') = LEGO.objVal  + eps ;
 pSummary('CAPEX (GEP, TEP, H2GEP)              [M$   ]  ') = + sum[ga(g    ), pInvestCost  (g    )* vGenInvest.l (g    )]
                                                              + sum[lc(i,j,c), pFixedCost   (i,j,c)* vLineInvest.l(i,j,c)]
@@ -1687,13 +1772,17 @@ pSummary('Cost renewable quota                 [$/MWh]') = - eCleanProd.m  * 1e3
 pSummary('Payment firm capacity                [$/MW ]') =   eFirmCapCon.m * 1e3 + eps;
 *calculated later with H2 results:   pSummary('Levelized cost of H2            [$/kg ]')
 
-* --------------------------------------- Investment Results -----------------------------------
+$offFold
+
+$onFold // Investment Results --------------------------------------------------
 
 pGenInvest (ga(g)    ,'[MW]  ') = pMaxProd(    g)*vGenInvest.l (    g) * 1e3 + eps ;
 pGenInvest (ga(g)    ,'[MVar]') = pMaxGenQ(    g)*vGenInvest.l (    g) * 1e3 + eps ;
 pTraInvest (lc(i,j,c),'[MW]  ') = pPmax   (i,j,c)*vLineInvest.l(i,j,c) * 1e3 + eps ;
 
-* ---------------------------------- Operating Dispatch Results --------------------------------
+$offFold
+
+$onFold // Operating Dispatch Results ------------------------------------------
 
 pCommit  (p,t    ) = sum[hindex(p,rpk(rp,k)), vCommit.l (rp,k,t)    ]   + eps ;
 pGenP    (p,ga(g)) = sum[hindex(p,rpk(rp,k)), vGenP.l   (rp,k,g)*1e3]   + eps ;
@@ -1773,7 +1862,9 @@ pResulCDSF('Battery life expectancy [year]',s)$[not pIsHydro(s) and pShelfLife(s
   1 /[1/pShelfLife(s) + pResulCDSF('Annual life loss from cycling [%]',s)]
 ;
 
-* -------------------------------- Economic Results Calculation ------------------------------
+$offFold
+
+$onFold // Economic Results Calculation ----------------------------------------
 
 * electricity prices [$/MWh]
 pSRMC(p,i)$[not pTransNet                    ] = sum[hindex(p,rpk(rp,k)), eSN_BalanceP.m  (rp,k,i) * 1e3 / [pWeight_rp(rp)*pWeight_k(k)]] + eps ;
@@ -1843,7 +1934,9 @@ pEconomicResults('RES quota payments/cost [M$]',g) =    pRevRESQuota (g) + eps;
 pEconomicResults('Firm capacity payments  [M$]',g) =    pFirmCapPay  (g) + eps;
 pEconomicResults('Total profits           [M$]',g) =    pTotalProfits(g) + eps;
 
-* -------------------------------------- RoCoF results ---------------------------------------
+$offFold
+
+$onFold // RoCoF results -------------------------------------------------------
 
 pRoCoF_k   (rp,k,t)$[pEnableRoCoF] = [vCommit.L(rp,k,t )*pMaxProd(t)/sum[tt,vCommit.L(rp,k,tt )* pMaxProd(tt)]
                                                                   ]$[sum[tt,vCommit.L(rp,k,tt )* pMaxProd(tt)]>0];
@@ -1871,13 +1964,17 @@ pActualSysInertia(k,rp) $[pEnableRoCoF] =[[
                           ]>0]
 ;
 
-* ---------------------------------------- DSM results ---------------------------------------
+$offFold
+
+$onFold // DSM results ---------------------------------------------------------
 
 pResultDSM(rp,k,'Up  ',sec,i) = vDSM_Up.l  (rp,k,i,sec) + eps;
 pResultDSM(rp,k,'Down',sec,i) = vDSM_Dn.l  (rp,k,i,sec) + eps;
 pResultDSM(rp,k,'Shed',seg,i) = vDSM_Shed.l(rp,k,i,seg) + eps;
 
-* ----------------------------------------- H2 results ---------------------------------------
+$offFold
+
+$onFold // H2 results ----------------------------------------------------------
 
 pH2price (h2sec,k,h2i,rp) $[rpk(rp,k) and pEnableH2] = eH2_Balance.m(rp,k,h2i,h2sec) * 1e3 / [pWeight_rp(rp)*pWeight_k(k)] + eps ;
 pH2Prod  (h2g  ,k,    rp) $[rpk(rp,k) and pEnableH2] = vH2Prod.l    (rp,k,h2g      ) * 1e3                                 + eps ;
@@ -1894,7 +1991,13 @@ pSummary('Levelized cost of H2                 [$/kg ]') $[pEnableH2 and sum[(rp
 
 display pSummary;
 
-* -------------------------------- Export results to Excel file ------------------------------
+$offFold
+
+
+*-------------------------------------------------------------------------------
+*                          Export Results to Excel File
+*-------------------------------------------------------------------------------
+$onFold // Export results to Excel file ----------------------------------------
 
 * data output to xls file
 put TMP putclose 'par=pSummary          rdim=1 rng=Summary!a1' / 'par=pCommit    rdim=1 rng=UC!a1'          / 'par=pGenP      rdim=1 rng=GenP!a1'        / 'par=pTecProd   rdim=1 rng=TotalEn!a1'  /
@@ -1913,9 +2016,13 @@ execute          'del                                                           
 * gdx with all information
 execute_unload 'LEGO_%gams.user1%.gdx'
 
+$offFold
+
+
 *-------------------------------------------------------------------------------
-*                         Saving UC decisions
+*                           Saving UC Decisions
 *-------------------------------------------------------------------------------
+$onFold // Saving UC decisions -------------------------------------------------
 
 if(%BatchUpdate%=1,
    execute_unload 'UC_%gams.user1%.gdx' pCommit pStLvMW;
@@ -1924,3 +2031,4 @@ elseif(card(p)>card(k)),
 );
 
 $OnListing
+$offFold
