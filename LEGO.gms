@@ -1726,6 +1726,7 @@ $offFold
 *-------------------------------------------------------------------------------
 *                  Calculating Ex Post Parameters for Results
 *-------------------------------------------------------------------------------
+$onFold // Calculating Ex Post Parameters for Results --------------------------
 pSummary('------------- MODEL STATISTICS -------------  ') = eps ;
 pSummary('Obj Func  Model                      [M$   ]  ') = LEGO.objVal  + eps ;
 pSummary('CAPEX (GEP, TEP, H2GEP)              [M$   ]  ') = + sum[ga(g    ), pInvestCost  (g    )* vGenInvest.l (g    )]
