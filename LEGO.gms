@@ -147,6 +147,7 @@ parameters
    pBigM_Flow               "big-M constant                           " / 1e3  /
    pBigM_SOCP               "big-M constant                           " / 1e3  /
    pMinFirmCap              "minimum firm capacity          [p.u.]    " / 0    /
+   pkWh_Mcal                "conversion factor kWh and Mcal [kWh/Mcal]" / 1.162/
 
 * generation units parameters
    pEFOR        (g)         "EFOR                           [p.u.]    "
@@ -158,10 +159,12 @@ parameters
    pMaxGenQ     (g)         "maximum reactive power output  [Gvar]    "
    pMinGenQ     (g)         "minimum reactive power output  [Gvar]    "
    pMaxCons     (g)         "maximum consumption            [GW]      "
+   pEffic       (g)         "efficiency of the unit         [p.u.]    "
    pInertiaConst(g)         "inertia constant H             [s]       "
    pSlopeVarCost(g)         "slope     variable cost        [M$/GWh]  "
    pInterVarCost(g)         "intercept variable cost        [M$/  h]  "
    pStartupCost (g)         "startup            cost        [M$]      "
+   pStartupCons (g)         "startup            consumption [GWh]     "
    pMinReserve  (g)         "minimum reserve                [p.u.]    "
    pIniReserve  (g)         "initial reserve                [GWh]     "
    pProdFacRes  (g)         "reservoir production function  [GWh/km3] "
@@ -542,8 +545,9 @@ eTotalVCost..
    + sum[(rpk(rp,k),s        ), pWeight_rp(rp)*pWeight_k(k)*pOMVarCost   (s)     * vGenP        (rp,k,s)    ]
    + sum[(rpk(rp,k),r        ), pWeight_rp(rp)*pWeight_k(k)*pOMVarCost   (r)     * vGenP        (rp,k,r)    ]
 * CO2 operational costs   
-   + sum[(rpk(rp,k),t        ), pWeight_rp(rp)*pWeight_k(k)*pCO2Emis     (t)     * vGenP        (rp,k,t) * pCO2Price] $[pEnableCO2]
-   +                                                        pCO2Penalty          * vCO2Overshoot                      $[pEnableCO2]  
+   + sum[(rpk(rp,k),t        ), pWeight_rp(rp)*pWeight_k(k)*pCO2Price*pCO2Emis(t)*pEffic(t)                 * vGenP   (rp,k,t)] $[pEnableCO2]
+   + sum[(rpk(rp,k),t        ), pWeight_rp(rp)             *pCO2Price*pCO2Emis(t)*pEffic(t)*pStartupCons(t) * vStartup(rp,k,t)] $[pEnableCO2] 
+   +                                                        pCO2Penalty          * vCO2Overshoot                                $[pEnableCO2]  
 * hydrogen operational costs
    + sum[           h2u       ,                             pH2OMVarCost (h2u)   * vH2Invest    (     h2u      )] $[pEnableH2]
    + sum[(rpk(rp,k),h2i,h2sec), pWeight_rp(rp)*pWeight_k(k)*pH2NSCost            * vH2NS        (rp,k,h2i,h2sec)] $[pEnableH2]
@@ -1397,10 +1401,12 @@ pRampUp      (t) = tThermalGen(t,'RampUp'      ) * 1e-3                ;
 pRampDw      (t) = tThermalGen(t,'RampDw'      ) * 1e-3                ;
 pMaxGenQ     (t) = tThermalGen(t,'Qmax'        ) * 1e-3 ;
 pMinGenQ     (t) = tThermalGen(t,'Qmin'        ) * 1e-3 ;
+pEffic       (t) = tThermalGen(t,'InterVarCost') * 1e-3 * pkWh_Mcal ;
 pSlopeVarCost(t) = tThermalGen(t,'OMVarCost'   ) * 1e-3 +
                    tThermalGen(t,'SlopeVarCost') * 1e-3 * tThermalGen(t,'FuelCost') ;
 pInterVarCost(t) = tThermalGen(t,'InterVarCost') * 1e-6 * tThermalGen(t,'FuelCost') ;
 pStartupCost (t) = tThermalGen(t,'StartupCost' ) * 1e-6 * tThermalGen(t,'FuelCost') ;
+pStartupCons (t) = tThermalGen(t,'StartupCost' ) * 1e-6 * pkWh_Mcal ;
 pInvestCost  (t) = tThermalGen(t,'InvestCost'  ) * 1e-3 *
                    pMaxProd   (t               ) ;
 pFirmCapCoef (t) = tThermalGen(t,'FirmCapCoef' ) ;
@@ -1720,8 +1726,7 @@ $offFold
 *-------------------------------------------------------------------------------
 *                  Calculating Ex Post Parameters for Results
 *-------------------------------------------------------------------------------
-$onFold // Summary -------------------------------------------------------------
-
+pSummary('------------- MODEL STATISTICS -------------  ') = eps ;
 pSummary('Obj Func  Model                      [M$   ]  ') = LEGO.objVal  + eps ;
 pSummary('CAPEX (GEP, TEP, H2GEP)              [M$   ]  ') = + sum[ga(g    ), pInvestCost  (g    )* vGenInvest.l (g    )]
                                                              + sum[lc(i,j,c), pFixedCost   (i,j,c)* vLineInvest.l(i,j,c)]
@@ -1755,6 +1760,7 @@ pSummary('SOCP Mean Error') $[    pEnableSOCP] =
    + vSOCP_cii.l(rp,k,i  ) * vSOCP_cii.l(rp,k,j  )]
 ;
 
+pSummary('--------------- POWER SYSTEM ---------------') = eps ;
 pSummary('Total system demand                  [GWh  ]') = sum[(rp,k)        ,pWeight_rp(rp)*pWeight_k(k)*sum[j, pDemandP (rp,k,j)]] + eps;
 pSummary('Total renewable + storage production [GWh  ]') = sum[(rp,k)        ,pWeight_rp(rp)*pWeight_k(k)*[+ sum[gi(r,j), vGenP.L(rp,k,r)]
                                                                                                            + sum[gi(s,j), vGenP.L(rp,k,s)]]] + eps;
@@ -1770,10 +1776,16 @@ pSummary('Storage            Investment        [GW   ]') = sum[s        , vGenIn
 pSummary('Transmission lines Investment        [GW   ]') = sum[lc(i,j,c), vLineInvest.l(i,j,c) * pPmax   (i,j,c)] + eps;
 
 pSummary('Energy non-supplied                  [GWh  ]') = sum[(rp,k),pWeight_rp(rp)*pWeight_k(k)*sum[j          , vPNS.l (rp,k,j        )]] + eps;
+
+pSummary('-------------- HYDROGEN SYSTEM -------------') = eps ;
 pSummary('H2     non-supplied                  [t    ]') = sum[(rp,k),pWeight_rp(rp)*pWeight_k(k)*sum[(h2i,h2sec), vH2NS.l(rp,k,h2i,h2sec)]] + eps;
-*adapt when defining vCO2UpSlack & vCO2downSlack
+
+pSummary('-------------- CO2 EMISSIONS ---------------') = eps ;
+pSummary('Budget CO2 emissions                 [MtCO2]') = pCO2Budget + eps ;
+pSummary('Actual CO2 emissions                 [MtCO2]') = sum[(rp,k,t), pWeight_rp(rp)* pCO2Emis(t)*pEffic(t) * [[pStartupCons(t)*vStartup.l(rp,k,t)] + [pWeight_k(k)*vGenP.l(rp,k,t)]]]$[pEnableCO2] + eps ;
 pSummary('CO2-target overshoot                 [MtCO2]') = vCO2Overshoot.l + eps;
 
+pSummary('----------------- POLICIES -----------------') = eps ;
 pSummary('Cost renewable quota                 [$/MWh]') = - eCleanProd.m  * 1e3 + eps;
 pSummary('Payment firm capacity                [$/MW ]') =   eFirmCapCon.m * 1e3 + eps;
 *calculated later with H2 results:   pSummary('Levelized cost of H2            [$/kg ]')
