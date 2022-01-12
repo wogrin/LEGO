@@ -1,4 +1,4 @@
-## Low-carbon Expansion Generation Optimization (LEGO) model
+# Low-carbon Expansion Generation Optimization (LEGO) model
 
 ![LEGO's architecture.](LEGO_Logo.png)
 
@@ -17,10 +17,23 @@ Its unique temporal structure allows LEGO to function with either chronological 
 # Case Studies
 * **LEGO-Base-Case-Study-7LRP**: Base case study for the model with stylized power system and 7 representative days.
 * **LEGO-Base-Case-Study-Hourly**: Base case study for the model with stylized power system and chronological hourly representation of time horizon of one year.
-* **EnStOpInvMo-7LRP-kmeans-net.xlsm**: Case study used in paper [[2]](https://doi.org/10.1016/j.apenergy.2020.115925) [This data file belongs to a preliminary version of the code and is no longer compatible with the current LEGO.gms file].
+* **EnStOpInvMo-7LRP-kmeans-net.xlsm**: Case study used in paper [1](https://doi.org/10.1016/j.apenergy.2020.115925) [This data file belongs to a preliminary version of the code and is no longer compatible with the current LEGO.gms file].
+
+
+# How to install LEGO
+: If you haven't done so, download GAMS to your computer from https://www.gams.com/download/
+:	Follow this link: https://github.com/wogrin/LEGO
+:	Download the ZIP file using the 'Code' button
+:	Unzip and keep all files in the same folder
+  
+# How to run LEGO
+:	Double click on LEGO.gms
+: Unzip the data files (e.g. LEGO-Base-Case-Study-7LRP.zip) into .xlsm 
+: In GAMS, load your data file by writing 'user1=LEGO-Base-Case-Study-7LRP' in the GAMS parameters box in the upper right hand corner of the IDE or GAMS Studio screen (without the file extension)
+: Run the model with F9, or by clicking on the run button
+: Model outputs are automatically written into temporary Excel files (e.g. tmp_LEGO-Base-Case-Study-7LRP.xlsx), which can be imported into the data file (e.g. LEGO-Base-Case-Study-7LRP.xlsm) by clicking the 'Load' button on the Menu sheet
+Notes: Avoid using spaces or special characters in your file names
 
 # References
-[1] [S. Wogrin, D. Tejada-Arango, U. Bachhiesl, B.F. Hobbs, The full Low-carbon Expansion Generation Optimization (LEGO) model, available at arxiv http://arxiv.org/abs/2109.01368, and submitted to Applied Energy.]
-
-[2] [S. Wogrin, D. Tejada-Arango, S. Delikaraoglou, A. Botterud, Assessing the impact of inertia and reactive power constraints in generation expansion planning, Applied Energy,
+[1] [S. Wogrin, D. Tejada-Arango, S. Delikaraoglou, A. Botterud, Assessing the impact of inertia and reactive power constraints in generation expansion planning, Applied Energy,
 Volume 280, 2020, 115925, ISSN 0306-2619.](https://doi.org/10.1016/j.apenergy.2020.115925)
