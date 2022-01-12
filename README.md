@@ -17,7 +17,7 @@ Its unique temporal structure allows LEGO to function with either chronological 
 # Case Studies
 * **LEGO-Base-Case-Study-7LRP**: Base case study for the model with stylized power system and 7 representative days.
 * **LEGO-Base-Case-Study-Hourly**: Base case study for the model with stylized power system and chronological hourly representation of time horizon of one year.
-* **EnStOpInvMo-7LRP-kmeans-net.xlsm**: Case study used in paper [1](https://doi.org/10.1016/j.apenergy.2020.115925) [This data file belongs to a preliminary version of the code and is no longer compatible with the current LEGO.gms file].
+* **EnStOpInvMo-7LRP-kmeans-net.xlsm**: Case study used in paper [[1]](https://doi.org/10.1016/j.apenergy.2020.115925) [This data file belongs to a preliminary version of the code and is no longer compatible with the current LEGO.gms file].
 
 
 # How to install LEGO
