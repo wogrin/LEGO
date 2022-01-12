@@ -2,7 +2,7 @@
 
 ![LEGO's architecture.](Figures/LEGO_Logo.png)
 
-LEGO is a mixed integer quadratically constrained optimization problem and has been designed to be a multi-purpose tool, like a Swiss army knife, that can be employed to study many different aspects of the energy sector. Ranging from short-term unit commitment to long-term generation and transmission expansion planning. The underlying modeling philosophies are: modularity and flexibility. LEGO is also composed of thematic modules that can be added or removed from the model easily via data options depending on the scope of the study. You can use this code freely, but please cite our paper [1] if you do.
+LEGO is a mixed integer quadratically constrained optimization problem and has been designed to be a multi-purpose tool, like a Swiss army knife, that can be employed to study many different aspects of the energy sector. Ranging from short-term unit commitment to long-term generation and transmission expansion planning. The underlying modeling philosophies are: modularity and flexibility. LEGO is also composed of thematic modules that can be added or removed from the model easily via data options depending on the scope of the study. You can use this code freely according to the LICENSE file (https://opensource.org/licenses/MIT), but please cite our paper [1] if you do.
 
 ![LEGO's architecture.](Figures/LEGO_Module.png)
 
@@ -13,6 +13,9 @@ This version of Low-carbon Expansion Generation Optimization (LEGO) has been ext
 * Unique and versatile combinations of modules.
 
 Its unique temporal structure allows LEGO to function with either chronological hourly data, or all kinds of representative periods. LEGO allows for modeling short- and long-term storage technologies with representative periods, e.g., long-term operation of large hydro reservoirs can be represented without having to renounce computational advantages of representative periods. Temporal flexibility and modularity of the model is something quite unique (that enables a plethora of many different studies) with one single model.
+
+# Software Architecture
+The LEGO code runs entirely in GAMS (using MIQCP solvers such as CPLEX or Gurobi). Data and results are read from / exported to Excel via gdx.
 
 # Case Studies
 * **LEGO-Base-Case-Study-7LRP**: Base case study for the model with stylized power system and 7 representative days.
