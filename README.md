@@ -15,7 +15,10 @@ This version of Low-carbon Expansion Generation Optimization (LEGO) has been ext
 Its unique temporal structure allows LEGO to function with either chronological hourly data, or all kinds of representative periods. LEGO allows for modeling short- and long-term storage technologies with representative periods, e.g., long-term operation of large hydro reservoirs can be represented without having to renounce computational advantages of representative periods. Temporal flexibility and modularity of the model is something quite unique (that enables a plethora of many different studies) with one single model.
 
 # Software Architecture
-The LEGO code runs entirely in GAMS (using MIQCP solvers such as CPLEX or Gurobi). Data and results are read from / exported to Excel via gdx.
+The LEGO code runs entirely in GAMS (using MIQCP solvers such as CPLEX or Gurobi). Data and results are read from / exported to Excel via gdx as indicated in the figure below:
+![LEGO's architecture.](Figures/LEGO_Architecture.png)
+A more detailed description of LEGO's input data can be found below:
+![LEGO's architecture.](Figures/LEGO_InputSheets.png)
 
 # Case Studies
 * **LEGO-Base-Case-Study-7LRP**: Base case study for the model with stylized power system and 7 representative days.
