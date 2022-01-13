@@ -16,10 +16,12 @@ Its unique temporal structure allows LEGO to function with either chronological 
 
 # Software Architecture
 The LEGO code runs entirely in GAMS (using MIQCP solvers such as CPLEX or Gurobi). Data and results are read from / exported to Excel via gdx as indicated in the figure below:
+
 ![LEGO's architecture.](Figures/LEGO_SoftwareArchitecture.png)
 
 # Input Data
 LEGO input data is organized by sector: electricity (green) and hydrogen (blue). A more detailed description of LEGO's input data organized in Excel Sheets can be found below:
+
 ![LEGO's architecture.](Figures/LEGO_InputSheets.png)
 
 # Case Studies
@@ -28,13 +30,13 @@ LEGO input data is organized by sector: electricity (green) and hydrogen (blue).
 * **EnStOpInvMo-7LRP-kmeans-net.xlsm**: Case study used in paper [[1]](https://doi.org/10.1016/j.apenergy.2020.115925) [This data file belongs to a preliminary version of the code and is no longer compatible with the current LEGO.gms file].
 
 
-# How to install LEGO
+# How to install LEGO?
 1) If you haven't done so, download GAMS to your computer from https://www.gams.com/download/
 2)	Follow this link: https://github.com/wogrin/LEGO
 3)	Download the ZIP file using the 'Code' button
 4)	Unzip and keep all files in the same folder
   
-# How to run LEGO
+# How to run LEGO?
 1)	Double click on LEGO.gms
 2) Unzip the data files (e.g. LEGO-Base-Case-Study-7LRP.zip) into .xlsm 
 3) In GAMS, load your data file by writing 'user1=LEGO-Base-Case-Study-7LRP' in the GAMS parameters box in the upper right hand corner of the IDE or GAMS Studio screen (without the file extension)
