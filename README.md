@@ -43,9 +43,9 @@ LEGO input data is organized by sector: electricity (green) and hydrogen (blue).
 4) Run the model with F9, or by clicking on the run button
 5) Model outputs are automatically written into temporary Excel files (e.g. tmp_LEGO-Base-Case-Study-7LRP.xlsx), which can be imported into the data file (e.g. LEGO-Base-Case-Study-7LRP.xlsm) by clicking the 'Load' button on the Menu sheet
 
-Notes
-* **Since the LEGO code runs entirely in GAMS (using MIQCP solver CPLEX), a GAMS and CPLEX license is required if you want to run large-scale instances of the models.
-* **Avoid using spaces or special characters in your file names. 
+Notes:
+* Since the LEGO code runs entirely in GAMS (using MIQCP solver CPLEX), a GAMS and CPLEX license is required if you want to run large-scale instances of the models.
+* Avoid using spaces or special characters in your file names. 
 
 # References
 [1] [S. Wogrin, D. Tejada-Arango, S. Delikaraoglou, A. Botterud, Assessing the impact of inertia and reactive power constraints in generation expansion planning, Applied Energy,
