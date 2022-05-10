@@ -1,5 +1,5 @@
 <p align="center">
-  <b>This repository has moved to https://github.com/IEE-TUGraz/LEGO</b>
+  <b>This repository has been migrated to https://github.com/IEE-TUGraz/LEGO</b>
 </p>
 
 # Low-carbon Expansion Generation Optimization (LEGO) model
